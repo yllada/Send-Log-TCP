@@ -1,5 +1,3 @@
-module github.com/yllada/send-log-tcp
+module github.com/yllada/Send-Log-TCP
 
-go 1.22.6
-
-require github.com/joho/godotenv v1.5.1
+go 1.23.1
