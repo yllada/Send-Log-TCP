@@ -7,12 +7,40 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/yllada/Send-Log-TCP/processor"
+	"github.com/yllada/Send-Log-TCP/schema"
+	"github.com/yllada/Send-Log-TCP/utils"
+)
+
+// Syslog severities (levels)
+const (
+	Emergency = 0
+	Alert     = 1
+	Critical  = 2
+	Error     = 3
+	Warning   = 4
+	Notice    = 5
+	Info      = 6
+	Debug     = 7
+)
+
+// Syslog facilities
+const (
+	Local0 = 16
+	Local1 = 17
+	Local2 = 18
+	Local3 = 19
+	Local4 = 20
+	Local5 = 21
+	Local6 = 22
+	Local7 = 23
 )
 
 func main() {
 	// Definir los flags para argumentos de línea de comandos
-	address := flag.String("address", "127.0.0.1:7000", "Syslog server address")
-	protocol := flag.String("protocol", "udp", "Protocol (udp or tcp)")
+	address := flag.String("address", "127.0.0.1:7018", "Syslog server address")
+	protocol := flag.String("protocol", "tcp", "Protocol (udp or tcp)")
 	facility := flag.Int("facility", Local0, "Syslog facility")
 	severity := flag.Int("severity", Info, "Syslog severity")
 	hostname := flag.String("hostname", "", "Hostname")
@@ -33,7 +61,7 @@ func main() {
 	}
 
 	// Validar dirección
-	if !isValidAddress(*address) {
+	if !utils.IsValidAddress(*address) {
 		log.Fatalf("Invalid address: %s (must be in the format IP:Port)", *address)
 	}
 
@@ -52,7 +80,7 @@ func main() {
 		log.Fatalf("At least one log message must be provided")
 	}
 
-	config := SyslogConfig{
+	config := schema.SyslogConfig{
 		Address:  *address,
 		Protocol: *protocol,
 		Facility: *facility,
@@ -62,12 +90,5 @@ func main() {
 		Interval: *interval,
 	}
 
-	// Generación y envío de logs en un ciclo continuo
-	for _, message := range config.Messages {
-		syslogMessage := buildSyslogMessage(config, message)
-		sendSyslogMessage(config, syslogMessage)
-
-		// Esperar el intervalo antes de enviar el próximo log
-		time.Sleep(config.Interval)
-	}
+	processor.SendSyslogMessages(config)
 }

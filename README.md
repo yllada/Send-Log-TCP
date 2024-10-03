@@ -36,7 +36,7 @@ To install and set up the **Send Log TCP/UDP** tool, follow these steps:
 To send log data over a TCP connection, run the following command:
 
 ```bash
-go run main.go --protocol tcp --message "Your log message here"
+go run main.go -protocol="tcp" -message="Your log message here"
 ```
 
 ### Running the UDP Log Sender
