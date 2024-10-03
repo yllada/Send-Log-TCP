@@ -10,6 +10,7 @@ Welcome to the **Send Log TCP/UDP** project! This project allows you to send log
 - **Reliable (TCP)**: Ensures reliable delivery of log data with automatic retries.
 - **Fast and Lightweight (UDP)**: For scenarios where speed is prioritized over reliability.
 - **Customizable**: Easily adapt to different log formats and server configurations.
+- **Command-Line Options**: Send logs via command-line arguments for flexibility.
 
 ## Installation
 
@@ -35,7 +36,7 @@ To install and set up the **Send Log TCP/UDP** tool, follow these steps:
 To send log data over a TCP connection, run the following command:
 
 ```bash
-go run main.go --protocol tcp
+go run main.go --protocol tcp --message "Your log message here"
 ```
 
 ### Running the UDP Log Sender
@@ -43,7 +44,7 @@ go run main.go --protocol tcp
 To send log data over a UDP connection, you can specify the protocol as follows:
 
 ```bash
-go run main.go --protocol udp
+go run main.go --protocol udp --message "Your log message here"
 ```
 
 ### Example Code Snippet
@@ -60,7 +61,7 @@ import (
 )
 
 func main() {
-    // Get the log agent address and message from the environment variables
+    // Get the log agent address and message from environment variables
     logAgentAddress := os.Getenv("LOG_AGENT_ADDRESS")
     logMessage := os.Getenv("LOG_MESSAGE")
 
@@ -105,6 +106,12 @@ Make sure to rename the `.env.example` file to `.env` and set the appropriate va
 ## Advanced Configuration
 
 You can also adjust other settings, such as connection timeout, maximum retries (for TCP), and log format by extending the configuration. Future versions will include more advanced configuration options, such as batching logs and asynchronous sending.
+
+## Improvements and Future Features
+
+1. Input Validation: Add validations to ensure that provided values are valid.
+2. Command Line Help: Implement an option to display help or documentation when running the program with -h or --help.
+3. Support for Multiple Messages: Allow sending multiple messages from the command line instead of just one.
 
 ## Contributing
 
