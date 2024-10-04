@@ -1,4 +1,4 @@
-name: Feature Frontend
+name: Frontend
 
 on:
   pull_request:
