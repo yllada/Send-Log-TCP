@@ -38,7 +38,7 @@ jobs:
 
     # Build Steps
     - name: Build backend
-      run: go build ./...
+      run: go build -o send-log-tcp ./build/send-log-tcp
 
     - name: Build frontend
       run: npm run build
