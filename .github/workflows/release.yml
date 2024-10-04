@@ -15,7 +15,7 @@ jobs:
 
     # Opcional: Puedes compilar tu aplicación aquí si necesitas.
     - name: Build backend
-      run: go build -o send-log-tcp ./build/send-log-tcp
+      run: go build -o send-log-tcp ./build
 
     # Crear una release
     - name: Create GitHub Release
