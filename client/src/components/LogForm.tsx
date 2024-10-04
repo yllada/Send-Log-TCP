@@ -60,49 +60,57 @@ const LogForm: React.FC = () => {
     return value >= min && value <= max;
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setFieldErrors({}); // Reiniciar errores
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setFieldErrors({});
 
-    const { address, protocol, facility, severity, hostname, messages, interval } = config;
+  const { address, protocol, facility, severity, hostname, messages, interval } = config;
 
-    // Validar campos antes de enviar
-    const errors: { [key: string]: string } = {};
-    if (!address) errors.address = "Address is required";
-    if (!isValid(facility, 0, 23)) errors.facility = "Facility must be between 0 and 23";
-    if (!isValid(severity, 0, 7)) errors.severity = "Severity must be between 0 and 7";
-    if (!isValid(interval, 1, 60)) errors.interval = "Interval must be between 1 and 60 seconds";
+  const errors: { [key: string]: string } = {};
+  if (!address) errors.address = "Address is required";
+  if (!isValid(facility, 0, 23)) errors.facility = "Facility must be between 0 and 23";
+  if (!isValid(severity, 0, 7)) errors.severity = "Severity must be between 0 and 7";
+  if (!isValid(interval, 1, 60)) errors.interval = "Interval must be between 1 and 60 seconds";
 
-    setFieldErrors(errors);
-    if (Object.keys(errors).length > 0) return; // Detener si hay errores
+  setFieldErrors(errors);
+  if (Object.keys(errors).length > 0) return;
 
-    const logData = {
-      address,
-      protocol,
-      facility,
-      severity,
-      hostname,
-      messages: messages.split(","),
-      interval,
-    };
-
-    setLoading(true); // Activar estado de carga
-    try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}`, logData);
-      setFeedbackMessage(`Log sent successfully! Server response: ${response.data.message || response.data}`);
-      setIsError(false);
-      resetForm();
-    } catch (error) {
-      const errorMessage =
-        axios.isAxiosError(error) && error.response
-          ? error.response.data.message || error.message
-          : "Error sending log. Please try again.";
-      setFeedbackMessage(errorMessage);
-      setIsError(true);
-    } finally {
-      setLoading(false); // Desactivar estado de carga
-    }
+  const logData = {
+    address,
+    protocol,
+    facility,
+    severity,
+    hostname,
+    messages: messages.split(","),
+    interval,
   };
+
+  setLoading(true);
+  try {
+    const response = await axios.post(
+      `${import.meta.env.VITE_API_URL}`,
+      logData,
+      {
+        headers: {
+          'Content-Type': 'application/json', // Set the content-type here
+        },
+      }
+    );
+    setFeedbackMessage(`Log sent successfully! Server response: ${response.data.message || response.data}`);
+    setIsError(false);
+    resetForm();
+  } catch (error) {
+    const errorMessage = axios.isAxiosError(error) && error.response
+      ? error.response.data.message || error.message
+      : "Error sending log. Please try again.";
+    console.error("Error details:", error);
+    setFeedbackMessage(errorMessage);
+    setIsError(true);
+  } finally {
+    setLoading(false);
+  }
+};
+    
 
   const resetForm = () => {
     setConfig({
