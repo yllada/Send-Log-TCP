@@ -13,8 +13,8 @@ import (
 // SetupRoutes configura las rutas para el servidor Gin
 func SetupRoutes(r *gin.Engine) {
 	// Configurar el servicio de archivos estáticos
-	r.Static("/assets", "./client/dist/assets")
-	r.StaticFile("/", "./client/dist/index.html")
+	r.Static("/assets", "./frontend/dist/assets")
+	r.StaticFile("/", "./frontend/dist/index.html")
 
 	// Rutas para enviar logs
 	r.POST("/sendlog", func(c *gin.Context) {
