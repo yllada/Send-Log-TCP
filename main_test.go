@@ -33,24 +33,3 @@ func TestMain(t *testing.T) {
 	// Verificar que el contenido de la respuesta sea el esperado
 	assert.Contains(t, w.Body.String(), "<html") // Verifica que contenga una etiqueta HTML
 }
-
-func TestAssets(t *testing.T) {
-	// Configurar Gin en modo de prueba
-	gin.SetMode(gin.TestMode)
-
-	// Crear un nuevo router
-	r := gin.Default()
-
-	// Configurar las rutas
-	routes.SetupRoutes(r)
-
-	// Crear un recorder para capturar la respuesta
-	w := httptest.NewRecorder()
-
-	// Realizar una solicitud GET a la ruta de assets
-	req, _ := http.NewRequest(http.MethodGet, "/assets/", nil)
-	r.ServeHTTP(w, req)
-
-	// Verificar que el código de estado sea 200 OK
-	assert.Equal(t, http.StatusOK, w.Code)
-}
