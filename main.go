@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -10,6 +11,11 @@ import (
 )
 
 func main() {
+	// Abrir el navegador en la URL http://localhost:8080
+	utils.OpenBrowser("http://localhost:8080")
+
+	time.Sleep(1 * time.Second)
+
 	// Crear el router Gin
 	r := gin.Default()
 
@@ -23,7 +29,4 @@ func main() {
 	if err := r.Run(":8080"); err != nil {
 		log.Fatalf("Failed to run server: %v", err)
 	}
-
-	// Abrir el navegador en la URL http://localhost:8080
-	utils.OpenBrowser("http://localhost:8080")
 }
