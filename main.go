@@ -16,10 +16,6 @@ func main() {
 	// Configurar CORS
 	r.Use(cors.Default())
 
-	// Configurar el servicio de archivos estáticos
-	r.Static("/assets", "./client/dist/assets")
-	r.StaticFile("/", "./client/dist/index.html")
-
 	// Configurar rutas del API
 	routes.SetupRoutes(r)
 
