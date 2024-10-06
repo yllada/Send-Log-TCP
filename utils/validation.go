@@ -1,11 +1,16 @@
 package utils
 
 import (
+	"fmt"
 	"net"
 )
 
-// isValidAddress valida que la dirección tenga el formato correcto
-func IsValidAddress(address string) bool {
-	_, _, err := net.SplitHostPort(address)
+// IsValidAddressAndPort valida que la dirección y puerto tengan el formato correcto
+func IsValidAddressAndPort(address string, port string) bool {
+	// Concatenar address y port
+	fullAddress := fmt.Sprintf("%s:%s", address, port)
+
+	// Validar el formato
+	_, _, err := net.SplitHostPort(fullAddress)
 	return err == nil
 }

@@ -27,8 +27,8 @@ func handleSendLog(c *gin.Context) {
 	}
 
 	// Validar la dirección
-	if !utils.IsValidAddress(req.Address) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid address format"})
+	if !utils.IsValidAddressAndPort(req.Address, req.Port) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid address or port format"})
 		return
 	}
 

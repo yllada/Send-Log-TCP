@@ -5,6 +5,7 @@ import "time"
 // Configuración del servidor Syslog
 type SyslogConfig struct {
 	Address  string
+	Port     string
 	Protocol string
 	Facility int
 	Severity int
