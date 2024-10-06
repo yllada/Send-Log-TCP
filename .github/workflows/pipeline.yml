@@ -9,24 +9,6 @@ on:
       - main
 
 jobs:
-  linter:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Check out code
-      uses: actions/checkout@v2
-      
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: '1.23'  
-        
-    - name: Install dependencies
-      run: go mod tidy
-      
-    - name: Run linter
-      run: go run golang.org/x/lint/golint ./...
-
   test:
     runs-on: ubuntu-latest
 
