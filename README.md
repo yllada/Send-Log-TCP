@@ -33,33 +33,11 @@ To install and set up the **Send Log TCP/UDP** tool, follow these steps:
 
 ### Running the TCP Log Sender
 
-To send log data over a TCP connection, run the following command:
-
-```bash
-go run main.go -protocol="tcp" -message="Your log message here"
-```
-
-### Running the UDP Log Sender
-
-To send log data over a UDP connection, you can specify the protocol as follows:
-
-```bash
-go run main.go -protocol="udp" -message="Your log message here"
-```
+Working
 
 ## Configuration
+Working...
 
-The configuration for this tool can be customized through flags variables:
-
-| Variable                          | Description                                    | Example Value   |
-|-----------------------------------|------------------------------------------------|-----------------|
-| `address`         | The IP address and port where logs will be sent. | `127.0.0.1:7003`     |
-| `protocol`          | The protocol to use for sending logs (`tcp` or `udp`). | `tcp`                |
-| `facility`          | The Sylog facility where logs will be sent (`Local0` or `Local1` or `Local2` or `Local3` or `Local4` or `Local5` or `Local6` or `Local7`). | `Local0`                |
-| `severity`          | The Syslog severity to use for sending logs (`Emergency` or `Alert` or `Critical` or `Error` or `Warning` or `Notice` or `Info` or `Debug`). | `Info`                |
-| `hostname`          | The hostname to use for sending logs. | `HostName`                |
-| `messages`          | The Syslog messages to use for sending logs. | `Comma-separated log messages`                |
-| `interval`          | Interval for sending logs. | `(e.g., 5s)`                |
 
 ## Advanced Configuration
 
