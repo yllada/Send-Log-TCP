@@ -13,11 +13,13 @@ import (
 // SetupRoutes configura las rutas para el servidor Gin
 func SetupRoutes(r *gin.Engine) {
 	// Rutas para enviar logs
-	r.POST("/sendlog", handleSendLog)
+	r.POST("/sendlog", func(c *gin.Context) {
+		handleSendLog(c, utils.IsValidAddressAndPort)
+	})
 }
 
 // handleSendLog maneja la recepción y procesamiento de logs
-func handleSendLog(c *gin.Context) {
+func handleSendLog(c *gin.Context, isValidAddressAndPort func(string, string) bool) {
 	var req schema.SyslogConfig
 
 	// Vincular los datos de la solicitud a la estructura
@@ -27,7 +29,7 @@ func handleSendLog(c *gin.Context) {
 	}
 
 	// Validar la dirección
-	if !utils.IsValidAddressAndPort(req.Address, req.Port) {
+	if !isValidAddressAndPort(req.Address, req.Port) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid address or port format"})
 		return
 	}
