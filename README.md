@@ -28,16 +28,21 @@ To install and set up the **Send Log TCP/UDP** tool, follow these steps:
     ```sh
     go mod tidy
     ```
+3. **Compile the fontend using npm or pnpm**:
+    ```sh
+    cd .\frontend\
+    ```
+    ```sh
+    pnpm run build or npm run build
+    ```
 
 ## Usage
 
 ### Running the TCP Log Sender
 
-Working
-
-## Configuration
-Working...
-
+```sh
+    go run main.go
+```
 
 ## Advanced Configuration
 
