@@ -10,9 +10,8 @@ import (
 )
 
 func SendSyslogMessages(config schema.SyslogConfig) {
-	// Establecer los valores por defecto si no se proporcionaron
 	SetDefaultSyslogConfig(&config)
-	// Concatenar la dirección con el puerto
+	
 	fullAddress := fmt.Sprintf("%s:%s", config.Address, config.Port)
 
 	conn, err := net.Dial(config.Protocol, fullAddress)

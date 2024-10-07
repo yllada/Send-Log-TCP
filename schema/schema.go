@@ -2,7 +2,6 @@ package schema
 
 import "time"
 
-// Configuración del servidor Syslog
 type SyslogConfig struct {
 	Address  string
 	Port     string
@@ -11,5 +10,5 @@ type SyslogConfig struct {
 	Severity int
 	Hostname string
 	Messages []string
-	Interval time.Duration // Enviar logs en intervalos (en segundos)
+	Interval time.Duration 
 }

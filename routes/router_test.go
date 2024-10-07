@@ -13,9 +13,7 @@ import (
 	"github.com/yllada/Send-Log-TCP/schema"
 )
 
-// Mock para la función IsValidAddressAndPort
 func mockIsValidAddressAndPort(address string, port string) bool {
-	// Aquí asumimos que solo localhost:1234 es válido
 	if address == "localhost" && port == "1234" {
 		return true
 	}
@@ -26,18 +24,18 @@ func TestHandleSendLog(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	r.POST("/sendlog", func(c *gin.Context) {
-		handleSendLog(c, mockIsValidAddressAndPort) // Inyectar la función mock
+		handleSendLog(c, mockIsValidAddressAndPort)
 	})
 
 	tests := []struct {
 		name         string
-		reqBody      interface{} // Cambiar a interface{} para permitir JSON inválido
+		reqBody      interface{} 
 		expectedCode int
 		expectedBody map[string]interface{}
 	}{
 		{
 			name:         "Invalid JSON",
-			reqBody:      "not a json", // Enviar un string en lugar de un JSON válido
+			reqBody:      "not a json", 
 			expectedCode: http.StatusBadRequest,
 			expectedBody: map[string]interface{}{"error": "Invalid request"},
 		},
@@ -87,7 +85,7 @@ func TestHandleSendLog(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			body, _ := json.Marshal(tt.reqBody) // Serializar el cuerpo
+			body, _ := json.Marshal(tt.reqBody) 
 			req, _ := http.NewRequest(http.MethodPost, "/sendlog", bytes.NewBuffer(body))
 			w := httptest.NewRecorder()
 

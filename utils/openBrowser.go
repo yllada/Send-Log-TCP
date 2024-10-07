@@ -6,7 +6,6 @@ import (
 	"runtime"
 )
 
-// openBrowser abre el navegador predeterminado en la URL proporcionada.
 func OpenBrowser(url string) {
 	var err error
 
