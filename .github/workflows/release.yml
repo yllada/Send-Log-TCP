@@ -1,0 +1,96 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Set up Go environment
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23' # Cambia a la versión que estés usando
+
+      # Build the Go application
+      - name: Build Go Backend
+        run: |
+          go build -o myapp ./build
+
+      # Set up Node.js environment for the frontend
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18' # Cambia a la versión que estés usando
+
+      # Install dependencies and build the frontend
+      - name: Install and Build Frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      # Upload the frontend build as an artifact
+      - name: Upload Frontend Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-build
+          path: frontend/dist
+
+      # Create the installer with Inno Setup
+      - name: Install Inno Setup
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wine
+          wget https://jrsoftware.org/download.php/is.exe
+          wine is.exe /VERYSILENT /SP- /DIR=C:\innosetup
+
+      - name: Run Inno Setup Script
+        run: |
+          wine C:/innosetup/ISCC.exe ./inno-setup-script.iss
+
+      # Upload the installer
+      - name: Upload Installer
+        uses: actions/upload-artifact@v3
+        with:
+          name: installer
+          path: ./installer.exe
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Create GitHub Release
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      # Upload installer to the release
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./installer.exe
+          asset_name: myapp-installer.exe
+          asset_content_type: application/octet-stream
