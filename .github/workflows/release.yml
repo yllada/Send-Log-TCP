@@ -1,4 +1,4 @@
-name: Build and Release
+name: Go Backend & Frontend Build and Release
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 jobs:
-  build:
+  build-backend:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,24 +18,69 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.23' # Cambia a la versión que estés usando
+          go-version: '1.20'
+
+      # Cache Go dependencies
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # Run tests and linting for Go
+      - name: Run Go tests
+        run: go test ./...
+
+      - name: Run Go lint
+        run: go vet ./...
 
       # Build the Go application
       - name: Build Go Backend
         run: |
-          go build -o myapp ./build
+          go build -ldflags="-s -w" -o myapp ./path/to/your/go/project
 
-      # Set up Node.js environment for the frontend
+  build-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Set up Node.js environment
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18' # Cambia a la versión que estés usando
+          node-version: '18'
 
-      # Install dependencies and build the frontend
-      - name: Install and Build Frontend
+      # Cache Node.js dependencies
+      - name: Cache Node modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # Install dependencies and run frontend tests
+      - name: Install Frontend Dependencies
         run: |
           cd frontend
           npm install
+
+      - name: Run Frontend Tests
+        run: |
+          cd frontend
+          npm test
+
+      # Build the frontend
+      - name: Build Frontend
+        run: |
+          cd frontend
           npm run build
 
       # Upload the frontend build as an artifact
@@ -45,30 +90,46 @@ jobs:
           name: frontend-build
           path: frontend/dist
 
-      # Create the installer with Inno Setup
-      - name: Install Inno Setup
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wine
-          wget https://jrsoftware.org/download.php/is.exe
-          wine is.exe /VERYSILENT /SP- /DIR=C:\innosetup
+  build-installer:
+    runs-on: windows-latest
 
+    steps:
+      # Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Set up Go environment
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+
+      # Build the Go backend for Windows
+      - name: Build Go Backend
+        run: go build -o myapp.exe ./path/to/your/go/project
+
+      # Install Inno Setup
+      - name: Install Inno Setup
+        run: choco install innosetup
+
+      # Run Inno Setup script to create the installer
       - name: Run Inno Setup Script
         run: |
-          wine C:/innosetup/ISCC.exe ./inno-setup-script.iss
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" path/to/your/inno-setup-script.iss
 
-      # Upload the installer
+      # Upload the installer as an artifact
       - name: Upload Installer
         uses: actions/upload-artifact@v3
         with:
           name: installer
-          path: ./installer.exe
+          path: path/to/your/installer.exe
 
   release:
-    needs: build
+    needs: [build-backend, build-frontend, build-installer]
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the code
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -91,6 +152,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./installer.exe
+          asset_path: path/to/your/installer.exe
           asset_name: myapp-installer.exe
           asset_content_type: application/octet-stream
