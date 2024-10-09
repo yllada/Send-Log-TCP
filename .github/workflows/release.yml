@@ -115,7 +115,7 @@ jobs:
       # Run Inno Setup script to create the installer
       - name: Run Inno Setup Script
         run: |
-          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ${{ github.workspace }}/inno-compiler.iss
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" inno-compiler.iss
 
       # Upload the installer as an artifact
       - name: Upload Installer
