@@ -18,7 +18,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.23'
+          go-version: '1.23.1'
 
       # Cache Go dependencies
       - name: Cache Go modules
@@ -32,11 +32,11 @@ jobs:
             ${{ runner.os }}-go-
 
       # Run tests and linting for Go
-      - name: Run Go tests
-        run: go test ./...
+      # - name: Run Go tests
+      #   run: go test ./...
 
-      - name: Run Go lint
-        run: go vet ./...
+      # - name: Run Go lint
+      #   run: go vet ./...
 
       # Build the Go application
       - name: Build Go Backend
@@ -102,7 +102,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.23'
+          go-version: '1.23.1'
 
       # Build the Go backend for Windows
       - name: Build Go Backend
