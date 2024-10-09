@@ -2,13 +2,14 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "SendLog Syslog"
-#define MyAppVersion "0.0.1"
+#define MyAppVersion "1.0.0"
 #define MyAppPublisher "Home, Inc."
 #define MyAppURL "https://github.com/yllada/Send-Log-TCP"
 #define MyAppExeName "sendLog-Sylog.exe"
 #define MyAppAssocName MyAppName + " File"
 #define MyAppAssocExt ".exe"
 #define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt
+#define MyAppDir GetEnv("MyAppDir")  ; Esta variable toma el valor del entorno en GitHub Actions
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
@@ -33,12 +34,11 @@ ArchitecturesInstallIn64BitMode=x64compatible
 ChangesAssociations=yes
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
-LicenseFile=C:\Users\Administrator\Desktop\WorkSpace\Github\Send-Log-TCP\LICENSE
-; Remove the following line to run in administrative install mode (install for all users.)
+LicenseFile={#MyAppDir}\LICENSE
 PrivilegesRequired=lowest
-OutputDir=C:\Users\Administrator\Desktop
+OutputDir={#MyAppDir}\output
 OutputBaseFilename=SendLogSylog
-SetupIconFile=C:\Users\Administrator\Desktop\WorkSpace\Github\Send-Log-TCP\icon.ico
+SetupIconFile={#MyAppDir}\icon.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -51,8 +51,8 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\Administrator\Desktop\WorkSpace\Github\Send-Log-TCP\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\Administrator\Desktop\WorkSpace\Github\Send-Log-TCP\frontend\dist\*"; DestDir: "{app}\frontend\dist\"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#MyAppDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#MyAppDir}\frontend\dist\*"; DestDir: "{app}\frontend\dist\"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
@@ -69,4 +69,3 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-

@@ -94,35 +94,32 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      # Checkout the code
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Set up Go environment
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: '1.23.1'
 
-      # Build the Go backend for Windows
       - name: Build Go Backend
-        run: go build -o myapp.exe ./
+        run: go build -o sendLog-Sylog.exe ./  
 
-      # Install Inno Setup
       - name: Install Inno Setup
-        run: choco install innosetup
+        run: choco install innosetup --yes
 
-      # Run Inno Setup script to create the installer
       - name: Run Inno Setup Script
         run: |
-          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" inno-compiler.iss
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ./inno-compiler.iss
+        env:
+          MyAppDir: ${{ github.workspace }}
 
-      # Upload the installer as an artifact
       - name: Upload Installer
         uses: actions/upload-artifact@v3
         with:
           name: installer
-          path: ./installer.exe
+          path: ./output/SendLogSylog.exe
+
 
   release:
     needs: [build-backend, build-frontend, build-installer]
