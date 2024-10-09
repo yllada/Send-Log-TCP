@@ -41,7 +41,7 @@ jobs:
       # Build the Go application
       - name: Build Go Backend
         run: |
-          go build -ldflags="-s -w" -o myapp ./dist
+          go build -ldflags="-s -w" -o myapp ./
 
   build-frontend:
     runs-on: ubuntu-latest
@@ -106,7 +106,7 @@ jobs:
 
       # Build the Go backend for Windows
       - name: Build Go Backend
-        run: go build -o myapp.exe ./dist
+        run: go build -o myapp.exe ./
 
       # Install Inno Setup
       - name: Install Inno Setup
@@ -122,7 +122,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: installer
-          path: ./dist/installer.exe
+          path: ./installer.exe
 
   release:
     needs: [build-backend, build-frontend, build-installer]
@@ -152,6 +152,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/installer.exe
+          asset_path: ./installer.exe
           asset_name: myapp-installer.exe
           asset_content_type: application/octet-stream
