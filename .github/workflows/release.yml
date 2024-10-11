@@ -31,17 +31,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      # Run tests and linting for Go
-      # - name: Run Go tests
-      #   run: go test ./...
-
-      # - name: Run Go lint
-      #   run: go vet ./...
-
       # Build the Go application
       - name: Build Go Backend
         run: |
           go build -ldflags="-s -w" -o myapp ./
+
+      # Upload the Backend build as an artifact
+      - name: Upload Backend Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: backend-build
+          path: ./myapp
 
   build-frontend:
     runs-on: ubuntu-latest
@@ -72,11 +72,6 @@ jobs:
           cd frontend
           npm install
 
-      # - name: Run Frontend Tests
-      #   run: |
-      #     cd frontend
-      #     npm test
-
       # Build the frontend
       - name: Build Frontend
         run: |
@@ -91,19 +86,12 @@ jobs:
           path: frontend/dist
 
   build-installer:
+    needs: [build-backend, build-frontend]
     runs-on: windows-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.23.1'
-
-      - name: Build Go Backend
-        run: go build -o sendLog-Sylog.exe ./  
 
       - name: Install Inno Setup
         run: choco install innosetup --yes
@@ -114,15 +102,16 @@ jobs:
         env:
           MyAppDir: ${{ github.workspace }}
 
+      # Upload Installer
       - name: Upload Installer
         uses: actions/upload-artifact@v3
         with:
           name: installer
-          path: ./output/SendLogSylog.exe
+          path: ./SendLogSylog.exe
 
 
   release:
-    needs: [build-backend, build-frontend, build-installer]
+    needs: [build-installer]
     runs-on: ubuntu-latest
 
     steps:
