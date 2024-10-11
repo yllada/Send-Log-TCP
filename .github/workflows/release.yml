@@ -92,6 +92,9 @@ jobs:
           name: frontend-build
           path: frontend-build
 
+      - name: Create output directory
+        run: mkdir -p ./output
+
       - name: Install Inno Setup
         run: choco install innosetup --yes
 
@@ -100,6 +103,9 @@ jobs:
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ./inno-compiler.iss
         env:
           MyAppDir: ${{ github.workspace }}
+
+      - name: Verify output directory contents
+        run: ls -R ./output
 
       - name: Upload Installer
         uses: actions/upload-artifact@v3
@@ -128,12 +134,15 @@ jobs:
           draft: false
           prerelease: false
 
+      - name: Save Release Upload URL
+        run: echo "UPLOAD_URL=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_ENV
+
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ env.UPLOAD_URL }}
           asset_path: ./output/SendLogSylog.exe
           asset_name: myapp-installer.exe
           asset_content_type: application/octet-stream
