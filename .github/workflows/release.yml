@@ -1,5 +1,3 @@
-name: Go Backend & Frontend Build and Release
-
 on:
   push:
     tags:
@@ -10,17 +8,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the code
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Set up Go environment
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: '1.23.1'
 
-      # Cache Go dependencies
       - name: Cache Go modules
         uses: actions/cache@v3
         with:
@@ -31,33 +26,28 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      # Build the Go application
       - name: Build Go Backend
         run: |
-          go build -ldflags="-s -w" -o myapp ./
+          go build -ldflags="-s -w" -o sendLog-Sylog.exe ./
 
-      # Upload the Backend build as an artifact
       - name: Upload Backend Build
         uses: actions/upload-artifact@v3
         with:
           name: backend-build
-          path: ./myapp
+          path: ./sendLog-Sylog.exe
 
   build-frontend:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the code
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Set up Node.js environment
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      # Cache Node.js dependencies
       - name: Cache Node modules
         uses: actions/cache@v3
         with:
@@ -66,19 +56,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      # Install dependencies and run frontend tests
       - name: Install Frontend Dependencies
         run: |
           cd frontend
           npm install
 
-      # Build the frontend
       - name: Build Frontend
         run: |
           cd frontend
           npm run build
 
-      # Upload the frontend build as an artifact
       - name: Upload Frontend Build
         uses: actions/upload-artifact@v3
         with:
@@ -93,6 +80,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Download Backend Build
+        uses: actions/download-artifact@v3
+        with:
+          name: backend-build
+          path: backend-build
+
+      - name: Download Frontend Build
+        uses: actions/download-artifact@v3
+        with:
+          name: frontend-build
+          path: frontend-build
+
       - name: Install Inno Setup
         run: choco install innosetup --yes
 
@@ -102,24 +101,20 @@ jobs:
         env:
           MyAppDir: ${{ github.workspace }}
 
-      # Upload Installer
       - name: Upload Installer
         uses: actions/upload-artifact@v3
         with:
           name: installer
-          path: ./SendLogSylog.exe
-
+          path: ./output/SendLogSylog.exe
 
   release:
     needs: [build-installer]
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the code
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Create GitHub Release
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -131,13 +126,12 @@ jobs:
           draft: false
           prerelease: false
 
-      # Upload installer to the release
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./installer.exe
+          asset_path: ./output/SendLogSylog.exe
           asset_name: myapp-installer.exe
           asset_content_type: application/octet-stream
