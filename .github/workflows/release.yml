@@ -120,6 +120,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Verify output directory contents
+        run: ls -R ./output
+
+      - name: Check if installer exists
+        run: |
+          if [ ! -f ./output/SendLogSylog.exe ]; then
+            echo "Error: ./output/SendLogSylog.exe not found"
+            exit 1
+          fi
+
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -143,4 +153,3 @@ jobs:
           asset_path: ./output/SendLogSylog.exe
           asset_name: myapp-installer.exe
           asset_content_type: application/octet-stream
-          
