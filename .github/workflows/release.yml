@@ -1,3 +1,5 @@
+name: Release Workflow
+
 on:
   push:
     tags:
@@ -6,7 +8,6 @@ on:
 jobs:
   build-backend:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -27,8 +28,7 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Build Go Backend
-        run: |
-          go build -ldflags="-s -w" -o sendLog-Sylog.exe ./
+        run: go build -ldflags="-s -w" -o sendLog-Sylog.exe ./
 
       - name: Upload Backend Build
         uses: actions/upload-artifact@v3
@@ -38,7 +38,6 @@ jobs:
 
   build-frontend:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -75,7 +74,6 @@ jobs:
   build-installer:
     needs: [build-backend, build-frontend]
     runs-on: windows-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -118,7 +116,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -142,7 +139,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.UPLOAD_URL }}
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./output/SendLogSylog.exe
           asset_name: myapp-installer.exe
           asset_content_type: application/octet-stream
+          
