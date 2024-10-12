@@ -42,8 +42,13 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "{#MyAppDir}\backend-build\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#MyAppDir}\backend-build\sendLog-Sylog.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#MyAppDir}\frontend-build\*"; DestDir: "{app}\frontend\dist\"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+[Files]
+Source: "C:\Program Files (x86)\Inno Setup 6\Examples\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\Administrator\Desktop\WorkSpace\Github\Send-Log-TCP\sendLog-Sylog.exe"; DestDir: "{app}"; Flags: ignoreversion
+; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
 Root: HKA; Subkey: "Software\Classes\{#MyAppAssocExt}\OpenWithProgids"; ValueType: string; ValueName: "{#MyAppAssocKey}"; ValueData: ""; Flags: uninsdeletevalue
