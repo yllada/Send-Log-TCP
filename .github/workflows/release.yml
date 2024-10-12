@@ -29,7 +29,10 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Build Go Backend
-        run: go build -o SendLog-Syslog.exe ./
+        env:
+          GOOS: windows 
+          GOARCH: amd64      
+        run: go build -o SendLog-Syslog.exe -v ./
 
       - name: Upload Backend Build
         uses: actions/upload-artifact@v3
