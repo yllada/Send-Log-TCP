@@ -28,7 +28,7 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Build Go Backend
-        run: go build -ldflags="-s -w" -o sendLog-Sylog.exe ./
+        run: go build -o sendLog-Sylog.exe ./
 
       - name: Upload Backend Build
         uses: actions/upload-artifact@v3

@@ -5,14 +5,14 @@
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Home, Inc."
 #define MyAppURL "https://github.com/yllada/Send-Log-TCP"
-#define MyAppExeName "sendLog-Sylog.exe"
-#define MyAppAssocName MyAppName + " File"
+#define MyAppExeName "SendLog-Sylog.exe"
+#define MyAppAssocName MyAppName + ""
 #define MyAppAssocExt ".exe"
 #define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt
-#define MyAppDir GetEnv("MyAppDir")  ; Esta variable toma el valor del entorno en GitHub Actions
+#define MyAppDir GetEnv("MyAppDir")  ;
 
 [Setup]
-AppId={{64F26F49-1390-497D-A447-8B7100762BF4}
+AppId={{1313FFB5-9EAC-4207-AB67-6BB0953FF270}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
