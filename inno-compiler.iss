@@ -5,7 +5,7 @@
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Home, Inc."
 #define MyAppURL "https://github.com/yllada/Send-Log-TCP"
-#define MyAppExeName "SendLog-Sylog.exe"
+#define MyAppExeName "SendLog Syslog.exe"
 #define MyAppAssocName MyAppName + ""
 #define MyAppAssocExt ".exe"
 #define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt
@@ -28,7 +28,7 @@ AllowNoIcons=yes
 LicenseFile={#MyAppDir}\LICENSE
 PrivilegesRequired=lowest
 OutputDir={#MyAppDir}\output
-OutputBaseFilename=SendLogSylog
+OutputBaseFilename=SendLog Syslog
 SetupIconFile={#MyAppDir}\icon.ico
 Compression=lzma
 SolidCompression=yes
@@ -42,7 +42,7 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "{#MyAppDir}\backend-build\sendLog-Sylog.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#MyAppDir}\backend-build\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#MyAppDir}\frontend-build\*"; DestDir: "{app}\frontend\dist\"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 

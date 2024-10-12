@@ -29,13 +29,13 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Build Go Backend
-        run: go build -o sendLog-Sylog.exe ./
+        run: go build -o SendLog Syslog.exe ./
 
       - name: Upload Backend Build
         uses: actions/upload-artifact@v3
         with:
           name: backend-build
-          path: ./sendLog-Sylog.exe
+          path: ./SendLog Syslog.exe
 
   build-frontend:
     runs-on: ubuntu-latest
@@ -110,7 +110,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: installer
-          path: ./output/SendLogSylog.exe
+          path: ./output/SendLog Syslog.exe
 
   release:
     needs: [build-installer]
@@ -132,8 +132,8 @@ jobs:
 
       - name: Check if installer exists
         run: |
-          if [ ! -f ./output/SendLogSylog.exe ]; then
-            echo "Error: ./output/SendLogSylog.exe not found"
+          if [ ! -f ./output/SendLog Syslog.exe ]; then
+            echo "Error: ./output/SendLog Syslog.exe not found"
             exit 1
           fi
 
@@ -158,6 +158,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./output/SendLogSylog.exe
+          asset_path: ./output/SendLog Syslog.exe
           asset_name: installer.exe
           asset_content_type: application/octet-stream
