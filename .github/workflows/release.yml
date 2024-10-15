@@ -35,7 +35,7 @@ jobs:
         run: go build -o SendLog-Syslog.exe -v ./
 
       - name: Upload Backend Build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: backend-build
           path: ./SendLog-Syslog.exe
@@ -70,7 +70,7 @@ jobs:
           npm run build
 
       - name: Upload Frontend Build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: frontend-build
           path: frontend/dist
@@ -110,7 +110,7 @@ jobs:
         run: ls -R ./output
 
       - name: Upload Installer
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: installer
           path: ./output/SendLog-Syslog.exe
