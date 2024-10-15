@@ -1,9 +1,9 @@
-name: Build Release
+name: Release Workflow
 
 on:
   push:
-    branches:
-      - release
+    tags:
+      - 'v*.*.*'
 
 jobs:
   build-backend:
