@@ -67,6 +67,11 @@ jobs:
       - name: Verify output directory contents
         run: ls -R ./build
 
+      - name: Check GitHub Token Permissions
+        run: |
+          echo "Checking GitHub Token Permissions..."
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/releases
+
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
