@@ -1,0 +1,14 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Sendlog-Syslog",
+  "outputfilename": "Sendlog-Syslog",
+  "frontend:install": "pnpm install",
+  "frontend:build": "pnpm run build",
+  "frontend:dev:watcher": "pnpm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "wailsjsdir": "frontend/src",
+  "author": {
+    "name": "Yadian Llada Lopez",
+    "email": "yadian.llada@gmail.com"
+  }
+}
