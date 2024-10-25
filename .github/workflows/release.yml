@@ -62,15 +62,15 @@ jobs:
         uses: actions/download-artifact@v3.0.0  
         with:
           name: wails-build
-          path: ./output
+          path: ./build 
 
       - name: Verify output directory contents
-        run: ls -R ./output
+        run: ls -R ./build
 
       - name: Check if executable exists
         run: |
-          if [ ! -f ./output/Sendlog-Syslog.exe ]; then  # Asegúrate de que el nombre sea consistente
-            echo "Error: ./output/Sendlog-Syslog.exe not found"
+          if [ ! -f ./build/bin/Sendlog-Syslog.exe ]; then  # Asegúrate de que el nombre sea consistente
+            echo "Error: ./build/bin/Sendlog-Syslog.exe not found"
             exit 1
 
       - name: Create GitHub Release
@@ -94,7 +94,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./output/Sendlog-Syslog.exe  
+          asset_path: ./build/bin/Sendlog-Syslog.exe
           asset_name: Sendlog-Syslog.exe  
           asset_content_type: application/octet-stream
 
