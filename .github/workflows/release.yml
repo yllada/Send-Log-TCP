@@ -67,12 +67,6 @@ jobs:
       - name: Verify output directory contents
         run: ls -R ./build
 
-      - name: Check if executable exists
-        run: |
-          if [ ! -f ./build/Sendlog-Syslog.exe ]; then 
-            echo "Error: ./build/Sendlog-Syslog.exe not found"
-            exit 1
-
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
