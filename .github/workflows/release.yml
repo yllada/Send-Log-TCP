@@ -1,25 +1,28 @@
-name: Release Workflow
-
 on:
   push:
     tags:
       - 'v*.*.*'
 
 jobs:
-  build-backend:
+  build-wails-app:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.0.0  
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v3.0.0  
         with:
-          go-version: ^1.23
+          go-version: '1.23'
         id: go
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v3.0.0  
+        with:
+          node-version: '18.0'
+
       - name: Cache Go modules
-        uses: actions/cache@v4
+        uses: actions/cache@v3.0.0  
         with:
           path: |
             ~/.cache/go-build
@@ -28,117 +31,47 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Build Go Backend
-        env:
-          GOOS: windows 
-          GOARCH: amd64      
-        run: go build -o SendLog-Syslog.exe -v ./
-
-      - name: Upload Backend Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-build
-          path: ./SendLog-Syslog.exe
-
-  build-frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ^18.0
-
       - name: Cache Node modules
-        uses: actions/cache@v4
+        uses: actions/cache@v3.0.0  
         with:
           path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install Frontend Dependencies
-        run: |
-          cd frontend
-          npm install
+      - name: Install Wails
+        run: npm install -g @wailsapp/cli
 
-      - name: Build Frontend
-        run: |
-          cd frontend
-          npm run build
+      - name: Build Wails App
+        run: wails build -platform windows/amd64
 
-      - name: Upload Frontend Build
-        uses: actions/upload-artifact@v4
+      - name: Upload Wails Build
+        uses: actions/upload-artifact@v3.0.0  
         with:
-          name: frontend-build
-          path: frontend/dist
+          name: wails-build
+          path: ./build/bin/Sendlog-Syslog.exe  
 
-  build-installer:
-    needs: [build-backend, build-frontend]
-    runs-on: windows-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download Backend Build
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-build
-          path: backend-build
-
-      - name: Download Frontend Build
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend-build
-
-      - name: Create output directory
-        run: mkdir -p ./output
-
-      - name: Install Inno Setup
-        run: choco install innosetup --yes
-
-      - name: Run Inno Setup Script
-        run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ./inno-compiler.iss
-        env:
-          MyAppDir: ${{ github.workspace }}
-
-      - name: Verify output directory contents
-        run: ls -R ./output
-
-      - name: Upload Installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: installer
-          path: ./output/SendLog-Syslog.exe
-
-  release:
-    needs: [build-installer]
+  create-release:
+    needs: build-wails-app
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Download Installer Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/checkout@v4.0.0  
+
+      - name: Download Wails Build
+        uses: actions/download-artifact@v3.0.0  
         with:
-          name: installer
+          name: wails-build
           path: ./output
 
       - name: Verify output directory contents
         run: ls -R ./output
 
-      - name: Check if installer exists
+      - name: Check if executable exists
         run: |
-          if [ ! -f ./output/SendLog-Syslog.exe ]; then
-            echo "Error: ./output/SendLog-Syslog.exe not found"
+          if [ ! -f ./output/Sendlog-Syslog.exe ]; then  # Asegúrate de que el nombre sea consistente
+            echo "Error: ./output/Sendlog-Syslog.exe not found"
             exit 1
-          fi
 
       - name: Create GitHub Release
         id: create_release
@@ -161,6 +94,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./output/SendLog-Syslog.exe
-          asset_name: installer.exe
+          asset_path: ./output/Sendlog-Syslog.exe  
+          asset_name: Sendlog-Syslog.exe  
           asset_content_type: application/octet-stream
+
+  notify:
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send notification
+        run: echo "Release ${{ github.ref }} has been created successfully!"
