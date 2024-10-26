@@ -21,6 +21,9 @@ jobs:
         with:
           node-version: '^20.0'
 
+      - name: Install pnpm
+        run: npm install -g pnpm
+
       - name: Cache Go modules
         uses: actions/cache@v3.0.0  
         with:
@@ -31,13 +34,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Cache Node modules
+      - name: Cache pnpm store
         uses: actions/cache@v3.0.0  
         with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-pnpm-
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
