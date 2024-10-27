@@ -8,13 +8,11 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/logger"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
-	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
 
+//go:embed all:frontend/dist
 var assets embed.FS
-
-var icon []byte
 
 func main() {
 	// Create an instance of the app structure
@@ -22,9 +20,13 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:             "Sendlog-Syslog",
-		Width:             800,
-		Height:            600,
+		Title:  "Sendlog-Syslog",
+		Width:  800,
+		Height: 600,
+		//MinWidth:          1024,
+		//MinHeight:         768,
+		//MaxWidth:          1280,
+		//MaxHeight:         800,
 		DisableResize:     false,
 		Fullscreen:        false,
 		Frameless:         false,
@@ -45,50 +47,15 @@ func main() {
 		Bind: []interface{}{
 			app,
 		},
-		DragAndDrop: &options.DragAndDrop{
-			EnableFileDrop:     false,
-			DisableWebViewDrop: false,
-			CSSDropProperty:    "--wails-drop-target",
-			CSSDropValue:       "drop",
-		},
 		// Windows platform specific options
 		Windows: &windows.Options{
-			WebviewIsTransparent:              false,
-			WindowIsTranslucent:               false,
-			BackdropType:                      windows.Mica,
-			DisablePinchZoom:                  false,
-			DisableWindowIcon:                 false,
-			DisableFramelessWindowDecorations: false,
-			WebviewUserDataPath:               "",
-			WebviewBrowserPath:                "",
-			Theme:                             windows.SystemDefault,
-			CustomTheme: &windows.ThemeSettings{
-				DarkModeTitleBar:   windows.RGB(20, 20, 20),
-				DarkModeTitleText:  windows.RGB(200, 200, 200),
-				DarkModeBorder:     windows.RGB(20, 0, 20),
-				LightModeTitleBar:  windows.RGB(200, 200, 200),
-				LightModeTitleText: windows.RGB(20, 20, 20),
-				LightModeBorder:    windows.RGB(200, 200, 200),
-			},
-		},
-		// Mac platform specific options
-		Mac: &mac.Options{
-			TitleBar: &mac.TitleBar{
-				TitlebarAppearsTransparent: true,
-				HideTitle:                  false,
-				HideTitleBar:               false,
-				FullSizeContent:            false,
-				UseToolbar:                 false,
-				HideToolbarSeparator:       true,
-			},
-			Appearance:           mac.NSAppearanceNameDarkAqua,
-			WebviewIsTransparent: true,
-			WindowIsTranslucent:  true,
-			About: &mac.AboutInfo{
-				Title:   "Sendlog-Syslog",
-				Message: "",
-				Icon:    icon,
-			},
+			WebviewIsTransparent: false,
+			WindowIsTranslucent:  false,
+			DisableWindowIcon:    false,
+			// DisableFramelessWindowDecorations: false,
+			WebviewUserDataPath: "",
+			ZoomFactor:          1.0,
+			Theme:               windows.Light,
 		},
 	})
 
