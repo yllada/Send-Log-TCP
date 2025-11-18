@@ -11,6 +11,8 @@ export namespace main {
 	    Hostname: string;
 	    Appname: string;
 	    UseRFC5424: boolean;
+	    UseTLS: boolean;
+	    TLSVerify: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new SyslogConfig(source);
@@ -28,6 +30,8 @@ export namespace main {
 	        this.Hostname = source["Hostname"];
 	        this.Appname = source["Appname"];
 	        this.UseRFC5424 = source["UseRFC5424"];
+	        this.UseTLS = source["UseTLS"];
+	        this.TLSVerify = source["TLSVerify"];
 	    }
 	}
 	export class SyslogResponse {
