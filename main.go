@@ -8,11 +8,14 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/logger"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
+
+var icon []byte
 
 func main() {
 	// Create an instance of the app structure
@@ -20,13 +23,13 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:             "SendLog Syslog",
-		Width:             1024,
-		Height:            768,
-		MinWidth:          800,
-		MinHeight:         600,
-		MaxWidth:          1920,
-		MaxHeight:         1080,
+		Title:     "SendLog Syslog",
+		Width:     900,
+		Height:    700,
+		MinWidth:  700,
+		MinHeight: 600,
+		//MaxWidth:        1200,
+		//MaxHeight:       900,
 		DisableResize:     false,
 		Fullscreen:        false,
 		Frameless:         false,
@@ -54,7 +57,25 @@ func main() {
 			DisableWindowIcon:    false,
 			WebviewUserDataPath:  "",
 			ZoomFactor:           1.0,
-			Theme:                windows.SystemDefault,
+		},
+		// Mac platform specific options
+		Mac: &mac.Options{
+			TitleBar: &mac.TitleBar{
+				TitlebarAppearsTransparent: true,
+				HideTitle:                  false,
+				HideTitleBar:               false,
+				FullSizeContent:            false,
+				UseToolbar:                 false,
+				HideToolbarSeparator:       true,
+			},
+			Appearance:           mac.NSAppearanceNameDarkAqua,
+			WebviewIsTransparent: true,
+			WindowIsTranslucent:  true,
+			About: &mac.AboutInfo{
+				Title:   "SendLog Syslog",
+				Message: "",
+				Icon:    icon,
+			},
 		},
 	})
 
