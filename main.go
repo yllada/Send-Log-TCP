@@ -23,11 +23,11 @@ func main() {
 		Title:             "SendLog Syslog",
 		Width:             950,
 		Height:            720,
-		MinWidth:          950,
-		MinHeight:         720,
-		MaxWidth:          950,
-		MaxHeight:         720,
-		DisableResize:     true,
+		MinWidth:          800,
+		MinHeight:         600,
+		MaxWidth:          0, // 0 = sin límite
+		MaxHeight:         0, // 0 = sin límite
+		DisableResize:     false,
 		Fullscreen:        false,
 		Frameless:         false,
 		StartHidden:       false,
@@ -52,10 +52,9 @@ func main() {
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,
 			DisableWindowIcon:    false,
-			// DisableFramelessWindowDecorations: false,
-			WebviewUserDataPath: "",
-			ZoomFactor:          1.0,
-			Theme:               windows.Light,
+			WebviewUserDataPath:  "",
+			ZoomFactor:           1.0,
+			Theme:                windows.SystemDefault,
 		},
 	})
 
