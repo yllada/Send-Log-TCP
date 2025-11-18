@@ -21,12 +21,12 @@ func main() {
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:             "SendLog Syslog",
-		Width:             950,
-		Height:            720,
+		Width:             1024,
+		Height:            768,
 		MinWidth:          800,
 		MinHeight:         600,
-		MaxWidth:          0, // 0 = sin límite
-		MaxHeight:         0, // 0 = sin límite
+		MaxWidth:          1920,
+		MaxHeight:         1080,
 		DisableResize:     false,
 		Fullscreen:        false,
 		Frameless:         false,
