@@ -215,17 +215,17 @@ export function InputForm() {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="w-full max-w-4xl mx-auto space-y-2"
+        className="w-full max-w-3xl mx-auto space-y-1.5"
       >
         {/* Connection Settings Card */}
         <Card>
-          <CardHeader className="pb-2 pt-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <NetworkIcon className="w-4 h-4" />
+          <CardHeader className="pb-1.5 pt-2">
+            <CardTitle className="text-sm flex items-center gap-1.5">
+              <NetworkIcon className="w-3.5 h-3.5" />
               Connection Settings
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 pb-3">
+          <CardContent className="space-y-1.5 pb-2">
             <div className="grid grid-cols-[2fr_1fr_1fr_auto] gap-2 items-end">
               <FormField
                 control={form.control}
@@ -421,10 +421,10 @@ export function InputForm() {
 
         {/* Message Format Card */}
         <Card>
-          <CardHeader className="pb-2 pt-3">
-            <CardTitle className="text-base">Message Configuration</CardTitle>
+          <CardHeader className="pb-1.5 pt-2">
+            <CardTitle className="text-sm">Message Configuration</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 pb-3">
+          <CardContent className="space-y-1.5 pb-2">
             <FormField
               control={form.control}
               name="UseRFC5424"
@@ -559,13 +559,13 @@ export function InputForm() {
         {/* Messages Card */}
         {isConnected ? (
           <Card>
-            <CardHeader className="pb-2 pt-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <SendIcon className="w-4 h-4" />
+            <CardHeader className="pb-1.5 pt-2">
+              <CardTitle className="text-sm flex items-center gap-1.5">
+                <SendIcon className="w-3.5 h-3.5" />
                 Send Messages
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 pb-3">
+            <CardContent className="space-y-1.5 pb-2">
               <FormField
                 control={form.control}
                 name="Messages"
@@ -575,7 +575,7 @@ export function InputForm() {
                     <FormControl>
                       <Textarea
                         placeholder="Type your messages here, one per line..."
-                        className="resize-none h-[90px] text-sm"
+                        className="resize-none h-[70px] text-sm"
                         {...field}
                         onChange={(e) => field.onChange([e.target.value])}
                       />
@@ -596,9 +596,9 @@ export function InputForm() {
           </Card>
         ) : (
           <Card>
-            <CardContent className="py-6">
+            <CardContent className="py-4">
               <div className="text-center">
-                <NetworkIcon className="w-10 h-10 mx-auto mb-2 text-muted-foreground opacity-50" />
+                <NetworkIcon className="w-8 h-8 mx-auto mb-1.5 text-muted-foreground opacity-50" />
                 <p className="text-xs text-muted-foreground">
                   Connect to a syslog server to send messages
                 </p>
