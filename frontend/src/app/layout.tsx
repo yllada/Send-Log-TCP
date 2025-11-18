@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/modeToggle";
+import { AppMenu } from "@/components/appMenu";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -26,18 +27,17 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="absolute top-2 right-2 z-50">
-            <ModeToggle />
+          <div className="min-h-screen flex flex-col">
+            <header className="w-full border-b">
+              <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
+                <AppMenu />
+                <ModeToggle />
+              </div>
+            </header>
+            <main className="flex-1 flex flex-col items-center p-6">
+              {children}
+            </main>
           </div>
-          <main className="flex flex-col items-center min-h-screen p-6">
-            <h2 className="text-2xl font-bold text-center mb-3 bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-              SendLog Syslog
-            </h2>
-            <p className="text-sm text-muted-foreground text-center mb-4">
-              Connect and send logs to syslog servers
-            </p>
-            {children}
-          </main>
           <Toaster />
         </ThemeProvider>
       </body>
