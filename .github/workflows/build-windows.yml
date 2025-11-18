@@ -36,12 +36,13 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      # 3. Setup Node.js y pnpm
+      # 3. Setup pnpm
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10
 
+      # 4. Setup Node.js con cache integrado
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -49,31 +50,33 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: frontend/pnpm-lock.yaml
 
-      # 4. Instalar dependencias del frontend
+      # 5. Instalar dependencias del frontend
+      # El cache se restaura automáticamente por setup-node
+      # Solo se ejecuta pnpm install si hay cambios en pnpm-lock.yaml
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: pnpm install --frozen-lockfile
 
-      # 5. Build del frontend (producción)
+      # 6. Build del frontend (producción)
       - name: Build frontend
         working-directory: ./frontend
         run: pnpm build
 
-      # 6. Instalar Wails CLI
+      # 7. Instalar Wails CLI
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
-      # 7. Build de la aplicación Wails para Windows
+      # 8. Build de la aplicación Wails para Windows
       - name: Build Wails application
         run: wails build -platform windows/amd64
 
-      # 8. Crear nombre del artefacto con timestamp
+      # 9. Crear nombre del artefacto con timestamp
       - name: Get timestamp
         id: timestamp
         shell: bash
         run: echo "timestamp=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
-      # 9. Upload del ejecutable como artefacto
+      # 10. Upload del ejecutable como artefacto
       - name: Upload Windows executable
         uses: actions/upload-artifact@v4
         with:
@@ -82,7 +85,7 @@ jobs:
             build/bin/*.exe
           retention-days: 30
 
-      # 10. (Opcional) Crear release si es un tag
+      # 11. (Opcional) Crear release si es un tag
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
