@@ -3,16 +3,21 @@
  */
 const nextConfig = {
     output: "export",
-  
-    // Optional: Change links `/me` -> `/me/` and emit `/me.html` -> `/me/index.html`
-    // trailingSlash: true,
-  
-    // Optional: Prevent automatic `/me` -> `/me/`, instead preserve `href`
-    // skipTrailingSlashRedirect: true,
-  
-    // Optional: Change the output directory `out` -> `dist`
     distDir: "dist",
     compress: false,
+    
+    // Optimizaciones para aplicación de escritorio con Wails
+    images: {
+      unoptimized: true,
+    },
+    
+    // Deshabilitar características no necesarias en aplicación de escritorio
+    swcMinify: true,
+    reactStrictMode: true,
+    
+    // Optimización del proceso de compilación
+    poweredByHeader: false,
+    generateEtags: false,
   };
   
   module.exports = nextConfig;
