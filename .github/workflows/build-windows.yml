@@ -13,7 +13,6 @@ on:
 
 # Variables de entorno globales
 env:
-  NODE_OPTIONS: "--max-old-space-size=4096"
   GO_VERSION: '1.21'
   NODE_VERSION: '20'
 
@@ -29,12 +28,13 @@ jobs:
         with:
           submodules: recursive
 
-      # 2. Setup Go
+      # 2. Setup Go con cache de dependencias
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
+          cache-dependency-path: go.sum
 
       # 3. Setup pnpm
       - name: Setup pnpm
