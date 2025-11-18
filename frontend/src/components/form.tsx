@@ -575,7 +575,7 @@ export function InputForm() {
                     <FormControl>
                       <Textarea
                         placeholder="Type your messages here, one per line..."
-                        className="resize-none h-[85px] text-sm"
+                        className="resize-none h-[90px] text-sm"
                         {...field}
                         onChange={(e) => field.onChange([e.target.value])}
                       />
