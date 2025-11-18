@@ -26,6 +26,7 @@ import {
 } from "./ui/select";
 import { Textarea } from "./ui/textarea";
 import { Separator } from "./ui/separator";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
 import { useState } from "react";
 import {
@@ -34,11 +35,11 @@ import {
   Disconnect,
 } from "@/wailsjs/go/main/App";
 import {
-  CheckIcon,
-  ChevronRightIcon,
-  CrossCircledIcon,
-} from "@radix-ui/react-icons";
-import { CheckCircle, CheckCircleIcon, XIcon } from "lucide-react";
+  CheckCircleIcon,
+  XCircleIcon,
+  SendIcon,
+  NetworkIcon,
+} from "lucide-react";
 
 const FormSchema = z.object({
   Address: z.string().ip({ version: "v4", message: "Invalid IP address" }),
@@ -53,6 +54,8 @@ const FormSchema = z.object({
   Hostname: z.string().optional(),
   Appname: z.string().min(1, "Application name is required"),
   UseRFC5424: z.boolean(),
+  UseTLS: z.boolean(),
+  TLSVerify: z.boolean(),
 });
 
 export function InputForm() {
@@ -69,54 +72,51 @@ export function InputForm() {
       Hostname: "",
       Appname: "sendlog",
       UseRFC5424: true,
+      UseTLS: false,
+      TLSVerify: false,
     },
   });
 
   const [isConnected, setIsConnected] = useState(false);
 
   const handleConnectionToggle = async () => {
-    const { Address, Port, Protocol } = form.getValues();
+    const { Address, Port, Protocol, UseTLS, TLSVerify } = form.getValues();
 
     if (isConnected) {
-      // Lógica para desconectar
-      // Por ejemplo, podrías llamar a un método para cerrar la conexión en el backend
-      await Disconnect(); // Asegúrate de que este método esté definido
+      await Disconnect();
       setIsConnected(false);
       toast({
-        title: "Disconnected successfully!",
-        description: (
-          <p>
-            {" "}
-            Disconnected to server:{" "}
-            <span className="text-red-500">{Address}</span> on port:{" "}
-            <span className="text-red-500">{Port}</span>
-          </p>
-        ),
+        title: "✓ Disconnected",
+        description: `Closed connection to ${Address}:${Port}`,
+        variant: "default",
       });
     } else {
-      // Lógica para conectar
       try {
-        const response = await CheckConnection(Address, Port, Protocol);
+        const response = await CheckConnection(Address, Port, Protocol, UseTLS, TLSVerify);
         if (response) {
           setIsConnected(true);
+          const protocolInfo = UseTLS ? `${Protocol.toUpperCase()}+TLS` : Protocol.toUpperCase();
+          const securityInfo = UseTLS && !TLSVerify ? " (self-signed cert)" : "";
           toast({
-            title: "Connected successfully!",
-            description:(
-              <p>
-            {" "}
-            Connected to server:{" "}
-            <span className="text-red-500">{Address}</span> on port:{" "}
-            <span className="text-red-500">{Port}</span>
-          </p>
-            ),
+            title: "✓ Connected",
+            description: `Successfully connected to ${Address}:${Port} via ${protocolInfo}${securityInfo}`,
+            variant: "default",
           });
         } else {
           setIsConnected(false);
-          toast({ title: "Failed to connect!" });
+          toast({
+            title: "✗ Connection Failed",
+            description: "Unable to establish connection",
+            variant: "destructive",
+          });
         }
       } catch (error) {
         setIsConnected(false);
-        toast({ title: "Error connecting!" });
+        toast({
+          title: "✗ Connection Error",
+          description: error instanceof Error ? error.message : "Unknown error",
+          variant: "destructive",
+        });
       }
     }
   };
@@ -133,35 +133,40 @@ export function InputForm() {
       Hostname: data.Hostname || "",
       Appname: data.Appname,
       UseRFC5424: data.UseRFC5424,
+      UseTLS: data.UseTLS,
+      TLSVerify: data.TLSVerify,
     };
 
     try {
-      console.log("Attempting to send log...");
-
-      // Llamada al backend para obtener los mensajes enviados y errores
       const response = await SendSyslogMessages(updatedData);
-      console.log("Log sent successfully: ", response);
 
-      // Mostrar el resultado en el toast
-      toast({
-        title: "Syslog Response:",
-        description: (
-          <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-            <code className="text-white">
-              Sent Messages: {JSON.stringify(response.sentMessages, null, 2)}
-              {"\n"}
-              Errors: {JSON.stringify(response.errors, null, 2)}
-            </code>
-          </pre>
-        ),
-      });
+      const successCount = response.sentMessages?.length || 0;
+      const errorCount = response.errors?.length || 0;
+
+      if (errorCount === 0 && successCount > 0) {
+        toast({
+          title: "✓ Messages Sent",
+          description: `Successfully sent ${successCount} message${successCount > 1 ? 's' : ''}`,
+          variant: "default",
+        });
+      } else if (errorCount > 0 && successCount > 0) {
+        toast({
+          title: "⚠ Partial Success",
+          description: `Sent: ${successCount} | Failed: ${errorCount}`,
+          variant: "default",
+        });
+      } else if (errorCount > 0) {
+        toast({
+          title: "✗ Send Failed",
+          description: response.errors?.[0] || "Failed to send messages",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
-      console.error("Error sending log: ", error);
-
-      // Mostrar un toast en caso de error
       toast({
-        title: "Error",
-        description: "There was an issue sending the log. Please try again.",
+        title: "✗ Error",
+        description: error instanceof Error ? error.message : "Failed to send messages",
+        variant: "destructive",
       });
     }
   }
@@ -210,314 +215,396 @@ export function InputForm() {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-6 p-6 bg-gray-100 rounded-lg shadow-md"
+        className="w-full max-w-4xl mx-auto space-y-2"
       >
-        {/* Connection Settings Section */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-700">
-            Connection Settings
-          </h2>
-
-          <div className="flex space-x-4">
-            <FormField
-              control={form.control}
-              name="Address"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormLabel>Address</FormLabel>
-                  <FormControl>
-                    <Input placeholder="192.168.1.100" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Enter the Syslog server IP address.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="Port"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormLabel>Port</FormLabel>
-                  <FormControl>
-                    <Input placeholder="514" type="number" {...field} />
-                  </FormControl>
-                  <FormDescription>Enter the Syslog server port.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <FormField
-              control={form.control}
-              name="Protocol"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormLabel>Protocol</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+        {/* Connection Settings Card */}
+        <Card>
+          <CardHeader className="pb-2 pt-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <NetworkIcon className="w-4 h-4" />
+              Connection Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 pb-3">
+            <div className="grid grid-cols-[2fr_1fr_1fr_auto] gap-2 items-end">
+              <FormField
+                control={form.control}
+                name="Address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">IP Address</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a protocol" />
-                      </SelectTrigger>
+                      <Input 
+                        placeholder="192.168.1.100" 
+                        className="h-8 text-sm" 
+                        {...field} 
+                      />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="tcp">TCP</SelectItem>
-                      <SelectItem value="udp">UDP</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Select the protocol for Syslog communication.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
 
-            <Button
-              type="button"
-              onClick={handleConnectionToggle}
-              className={`rounded-full text-white shadow-md transition duration-200 mt-8 ${
-                isConnected ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"
-              }`}
-            >
-              {isConnected ? <CrossCircledIcon /> : <CheckCircleIcon />}
-            </Button>
-          </div>
+              <FormField
+                control={form.control}
+                name="Port"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Port</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="514" 
+                        type="number" 
+                        className="h-8 text-sm"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
 
-          {/* TCP Framing Method - Only shown when protocol is TCP */}
-          {form.watch("Protocol") === "tcp" && (
+              <FormField
+                control={form.control}
+                name="Protocol"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Protocol</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue placeholder="Protocol" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="tcp">TCP</SelectItem>
+                        <SelectItem value="udp">UDP</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+
+              <Button
+                type="button"
+                onClick={handleConnectionToggle}
+                size="icon"
+                className={`h-8 w-8 rounded-full ${
+                  isConnected
+                    ? "bg-red-500 hover:bg-red-600"
+                    : "bg-green-500 hover:bg-green-600"
+                }`}
+              >
+                {isConnected ? (
+                  <XCircleIcon className="w-4 h-4" />
+                ) : (
+                  <CheckCircleIcon className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+
             <FormField
               control={form.control}
               name="FramingMethod"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Framing Method (TCP)</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select framing method" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="octet-counting">
-                        Octet Counting (RFC 6587)
-                      </SelectItem>
-                      <SelectItem value="non-transparent">
-                        Non-Transparent Framing (LF delimiter)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Select the TCP framing method. Octet counting is recommended
-                    for binary data.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const isTCP = form.watch("Protocol") === "tcp";
+                
+                return (
+                  <FormItem>
+                    <FormLabel className={`text-xs ${!isTCP ? 'text-muted-foreground' : ''}`}>
+                      TCP Framing
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      disabled={!isTCP}
+                    >
+                      <FormControl>
+                        <SelectTrigger 
+                          className="h-8 text-sm"
+                          disabled={!isTCP}
+                        >
+                          <SelectValue placeholder="Select method" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="octet-counting">
+                          Octet Counting (RFC 6587)
+                        </SelectItem>
+                        <SelectItem value="non-transparent">
+                          Non-Transparent (LF)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                );
+              }}
             />
-          )}
-        </div>
 
-        <Separator />
+            <div className="grid grid-cols-2 gap-2">
+              <FormField
+                control={form.control}
+                name="UseTLS"
+                render={({ field }) => {
+                  const isTCP = form.watch("Protocol") === "tcp";
+                  
+                  return (
+                    <FormItem className="flex flex-row items-center gap-2 space-y-0 rounded-md border p-2">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={(e) => {
+                            field.onChange(e.target.checked);
+                            // Auto-sugerir puerto 6514 cuando se activa TLS
+                            if (e.target.checked && form.getValues("Port") === "514") {
+                              form.setValue("Port", "6514");
+                            } else if (!e.target.checked && form.getValues("Port") === "6514") {
+                              form.setValue("Port", "514");
+                            }
+                          }}
+                          disabled={!isTCP}
+                          className="h-3.5 w-3.5"
+                        />
+                      </FormControl>
+                      <div className="flex-1 space-y-0">
+                        <FormLabel className={`text-xs font-medium ${!isTCP ? 'text-muted-foreground' : ''}`}>
+                          Use TLS/SSL
+                        </FormLabel>
+                        <FormDescription className="text-[10px] leading-tight">
+                          Encrypt connection (RFC 5425)
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  );
+                }}
+              />
 
-        {/* Syslog Message Format Section */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-700">
-            Message Format
-          </h2>
+              <FormField
+                control={form.control}
+                name="TLSVerify"
+                render={({ field }) => {
+                  const useTLS = form.watch("UseTLS");
+                  const isTCP = form.watch("Protocol") === "tcp";
+                  
+                  return (
+                    <FormItem className="flex flex-row items-center gap-2 space-y-0 rounded-md border p-2">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          disabled={!isTCP || !useTLS}
+                          className="h-3.5 w-3.5"
+                        />
+                      </FormControl>
+                      <div className="flex-1 space-y-0">
+                        <FormLabel className={`text-xs font-medium ${!isTCP || !useTLS ? 'text-muted-foreground' : ''}`}>
+                          Verify Certificate
+                        </FormLabel>
+                        <FormDescription className="text-[10px] leading-tight">
+                          Uncheck for self-signed certs
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  );
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="flex items-center space-x-4">
+        {/* Message Format Card */}
+        <Card>
+          <CardHeader className="pb-2 pt-3">
+            <CardTitle className="text-base">Message Configuration</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 pb-3">
             <FormField
               control={form.control}
               name="UseRFC5424"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormItem className="flex flex-row items-center gap-2 space-y-0 rounded-md border p-2">
                   <FormControl>
                     <input
                       type="checkbox"
                       checked={field.value}
                       onChange={field.onChange}
-                      className="h-4 w-4 mt-1"
+                      className="h-3.5 w-3.5"
                     />
                   </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      Use RFC 5424 (Modern Format)
+                  <div className="flex-1 space-y-0">
+                    <FormLabel className="text-xs font-medium">
+                      Use RFC 5424 Format
                     </FormLabel>
-                    <FormDescription>
-                      When checked, uses RFC 5424 format. Unchecked uses legacy RFC 3164.
+                    <FormDescription className="text-[10px] leading-tight">
+                      Modern format (checked) or legacy RFC 3164
                     </FormDescription>
                   </div>
                 </FormItem>
               )}
             />
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="Facility"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Facility</FormLabel>
-                  <Select
-                    onValueChange={(value) => field.onChange(parseInt(value))}
-                    defaultValue={field.value?.toString()}
-                  >
+            <div className="grid grid-cols-2 gap-2">
+              <FormField
+                control={form.control}
+                name="Facility"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Facility</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      defaultValue={field.value?.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="max-h-[180px]">
+                        {facilityOptions.map((option) => (
+                          <SelectItem
+                            key={option.value}
+                            value={option.value.toString()}
+                            className="text-xs"
+                          >
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="Severity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Severity</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      defaultValue={field.value?.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="max-h-[180px]">
+                        {severityOptions.map((option) => (
+                          <SelectItem
+                            key={option.value}
+                            value={option.value.toString()}
+                            className="text-xs"
+                          >
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <FormField
+                control={form.control}
+                name="Hostname"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Hostname</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select facility" />
-                      </SelectTrigger>
+                      <Input
+                        placeholder="Optional"
+                        className="h-8 text-sm"
+                        {...field}
+                      />
                     </FormControl>
-                    <SelectContent>
-                      {facilityOptions.map((option) => (
-                        <SelectItem
-                          key={option.value}
-                          value={option.value.toString()}
-                        >
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Select the syslog facility (0-23).
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="Severity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Severity</FormLabel>
-                  <Select
-                    onValueChange={(value) => field.onChange(parseInt(value))}
-                    defaultValue={field.value?.toString()}
-                  >
+              <FormField
+                control={form.control}
+                name="Appname"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">App Name</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select severity" />
-                      </SelectTrigger>
+                      <Input 
+                        placeholder="sendlog" 
+                        className="h-8 text-sm"
+                        {...field} 
+                      />
                     </FormControl>
-                    <SelectContent>
-                      {severityOptions.map((option) => (
-                        <SelectItem
-                          key={option.value}
-                          value={option.value.toString()}
-                        >
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Select the message severity (0-7).
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="Hostname"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hostname (Optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Leave empty to use system hostname"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Custom hostname for syslog messages.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        {/* Messages Card */}
+        {isConnected ? (
+          <Card>
+            <CardHeader className="pb-2 pt-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <SendIcon className="w-4 h-4" />
+                Send Messages
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 pb-3">
+              <FormField
+                control={form.control}
+                name="Messages"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Log Messages</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Type your messages here, one per line..."
+                        className="resize-none h-[85px] text-sm"
+                        {...field}
+                        onChange={(e) => field.onChange([e.target.value])}
+                      />
+                    </FormControl>
+                    <FormDescription className="text-[10px]">
+                      Enter messages separated by new lines
+                    </FormDescription>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="Appname"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Application Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="sendlog" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Name of the application sending logs.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Messages Section */}
-        {isConnected && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-gray-700">
-              Messages
-            </h2>
-
-            <FormField
-              control={form.control}
-              name="Messages"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Syslog Messages</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Type your messages here, one per line."
-                      className="min-h-[120px]"
-                      {...field}
-                      onChange={(e) => field.onChange([e.target.value])}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Enter multiple messages, separated by new lines.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <Button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Send Syslog Messages
-            </Button>
-          </div>
-        )}
-
-        {!isConnected && (
-          <div className="text-center text-gray-500 py-4">
-            Please connect to a Syslog server to send messages.
-          </div>
+              <Button type="submit" className="w-full h-8 text-sm" size="sm">
+                <SendIcon className="w-3.5 h-3.5 mr-2" />
+                Send Syslog Messages
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="py-6">
+              <div className="text-center">
+                <NetworkIcon className="w-10 h-10 mx-auto mb-2 text-muted-foreground opacity-50" />
+                <p className="text-xs text-muted-foreground">
+                  Connect to a syslog server to send messages
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </form>
     </Form>
