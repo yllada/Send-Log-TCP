@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"log"
@@ -40,13 +41,108 @@ func (a *App) beforeClose(ctx context.Context) (prevent bool) {
 // shutdown is called at application termination
 func (a *App) shutdown(ctx context.Context) {}
 
+// dialTLS establece una conexión TLS al servidor remoto
+// Si tlsVerify es false, acepta cualquier certificado (útil para certificados autofirmados)
+// Si tlsVerify es true, verifica el certificado usando las CA del sistema
+func dialTLS(address, port string, tlsVerify bool) (net.Conn, error) {
+	fullAddress := fmt.Sprintf("%s:%s", address, port)
+
+	// Configuración TLS moderna siguiendo mejores prácticas
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: !tlsVerify,
+		MinVersion:         tls.VersionTLS12, // TLS 1.2 mínimo (estándar de la industria)
+		MaxVersion:         tls.VersionTLS13, // TLS 1.3 máximo (más reciente y seguro)
+	}
+
+	// Si se verifica el certificado, configurar el ServerName para SNI
+	if tlsVerify {
+		tlsConfig.ServerName = address
+	}
+
+	// Establecer conexión TLS con timeout
+	dialer := &net.Dialer{
+		Timeout: 10 * time.Second,
+	}
+
+	tlsConn, err := tls.DialWithDialer(dialer, "tcp", fullAddress, tlsConfig)
+	if err != nil {
+		return nil, fmt.Errorf("TLS connection failed: %w", err)
+	}
+
+	// Realizar el handshake TLS explícitamente
+	if err := tlsConn.Handshake(); err != nil {
+		tlsConn.Close()
+		return nil, fmt.Errorf("TLS handshake failed: %w", err)
+	}
+
+	// Log información de la conexión TLS establecida
+	state := tlsConn.ConnectionState()
+	log.Printf("TLS connection established: version=%s, cipher=%s, server=%s",
+		tlsVersionName(state.Version),
+		tls.CipherSuiteName(state.CipherSuite),
+		state.ServerName,
+	)
+
+	return tlsConn, nil
+}
+
+// tlsVersionName convierte el código de versión TLS a nombre legible
+func tlsVersionName(version uint16) string {
+	switch version {
+	case tls.VersionTLS10:
+		return "TLS 1.0"
+	case tls.VersionTLS11:
+		return "TLS 1.1"
+	case tls.VersionTLS12:
+		return "TLS 1.2"
+	case tls.VersionTLS13:
+		return "TLS 1.3"
+	default:
+		return fmt.Sprintf("Unknown (0x%04X)", version)
+	}
+}
+
+// dialConnection establece una conexión según el protocolo configurado
+// Soporta TCP, UDP y TCP+TLS (RFC 5425)
+func dialConnection(address, port, protocol string, useTLS, tlsVerify bool) (net.Conn, error) {
+	// Si se solicita TLS pero el protocolo es UDP, retornar error
+	if useTLS && protocol == "udp" {
+		return nil, fmt.Errorf("TLS is not supported over UDP protocol")
+	}
+
+	// Si es TCP con TLS
+	if protocol == "tcp" && useTLS {
+		return dialTLS(address, port, tlsVerify)
+	}
+
+	// Conexión estándar (TCP o UDP sin TLS)
+	fullAddress := fmt.Sprintf("%s:%s", address, port)
+	dialer := &net.Dialer{
+		Timeout: 10 * time.Second,
+	}
+
+	conn, err := dialer.Dial(protocol, fullAddress)
+	if err != nil {
+		return nil, fmt.Errorf("connection failed: %w", err)
+	}
+
+	return conn, nil
+}
+
 // FramingMethod especifica el método de framing para TCP según RFC 6587
+// RFC 6587: "Transmission of Syslog Messages over TCP"
+// Define dos métodos estándar para delimitar mensajes en streams TCP
 type FramingMethod string
 
 const (
-	// OctetCounting usa el método de conteo de octetos (MSG-LEN SP SYSLOG-MSG)
+	// OctetCounting implementa el método de conteo de octetos (RFC 6587 Section 3.4.1)
+	// Formato: MSG-LEN SP SYSLOG-MSG
+	// Este es el método RECOMENDADO porque no tiene restricciones sobre el contenido
 	OctetCounting FramingMethod = "octet-counting"
-	// NonTransparent usa delimitador al final (SYSLOG-MSG LF)
+
+	// NonTransparent implementa framing no-transparente (RFC 6587 Section 3.4.2)
+	// Formato: SYSLOG-MSG LF
+	// Limitación: el mensaje no puede contener el delimitador LF
 	NonTransparent FramingMethod = "non-transparent"
 )
 
@@ -61,6 +157,8 @@ type SyslogConfig struct {
 	Hostname      string        `json:"Hostname"`      // Hostname del sistema
 	Appname       string        `json:"Appname"`       // Nombre de la aplicación
 	UseRFC5424    bool          `json:"UseRFC5424"`    // true=RFC5424, false=RFC3164
+	UseTLS        bool          `json:"UseTLS"`        // true=usar TLS para conexión TCP
+	TLSVerify     bool          `json:"TLSVerify"`     // true=verificar certificado del servidor
 }
 
 // SyslogResponse to send back to the frontend
@@ -70,20 +168,28 @@ type SyslogResponse struct {
 }
 
 // CheckConnection verifies if a connection can be established
-func (a *App) CheckConnection(address string, port string, protocol string) (bool, error) {
+// Soporta TCP, UDP y TCP+TLS (RFC 5425 para syslog seguro)
+func (a *App) CheckConnection(address string, port string, protocol string, useTLS bool, tlsVerify bool) (bool, error) {
 	fullAddress := fmt.Sprintf("%s:%s", address, port)
-	conn, err := net.Dial(protocol, fullAddress)
+
+	// Establecer conexión con soporte TLS
+	conn, err := dialConnection(address, port, protocol, useTLS, tlsVerify)
 	if err != nil {
 		log.Printf("Error connecting to %s: %v", fullAddress, err)
 		return false, err
 	}
+
 	// Almacenar la conexión activa
 	a.connMu.Lock()
 	a.conn = conn
 	a.isConnected = true
 	a.connMu.Unlock()
 
-	log.Println("Connected to", fullAddress)
+	protocolInfo := protocol
+	if useTLS {
+		protocolInfo = fmt.Sprintf("%s+TLS", protocol)
+	}
+	log.Printf("Connected to %s via %s", fullAddress, protocolInfo)
 	return true, nil
 }
 
@@ -118,13 +224,19 @@ func (a *App) SendSyslogMessages(config SyslogConfig) SyslogResponse {
 
 	fullAddress := fmt.Sprintf("%s:%s", config.Address, config.Port)
 
-	conn, err := net.Dial(config.Protocol, fullAddress)
+	// Establecer conexión con soporte TLS
+	conn, err := dialConnection(config.Address, config.Port, config.Protocol, config.UseTLS, config.TLSVerify)
 	if err != nil {
 		log.Printf("Error connecting to %s: %v", fullAddress, err)
 		response.Errors = append(response.Errors, fmt.Sprintf("Error connecting to %s: %v", fullAddress, err))
 		return response
 	}
-	log.Println("Connected to", fullAddress)
+
+	protocolInfo := config.Protocol
+	if config.UseTLS {
+		protocolInfo = fmt.Sprintf("%s+TLS", config.Protocol)
+	}
+	log.Printf("Connected to %s via %s", fullAddress, protocolInfo)
 	defer conn.Close()
 
 	// Enviar mensajes según el protocolo
@@ -134,28 +246,37 @@ func (a *App) SendSyslogMessages(config SyslogConfig) SyslogResponse {
 	return sendUDPMessages(conn, config)
 }
 
-// sendTCPMessages envía mensajes TCP con el framing adecuado
+// sendTCPMessages envía mensajes TCP con el framing adecuado según RFC 6587
+// Utiliza el módulo Framer para aplicar el método de framing configurado
 func sendTCPMessages(conn net.Conn, config SyslogConfig) SyslogResponse {
 	response := SyslogResponse{
 		SentMessages: []string{},
 		Errors:       []string{},
 	}
 
+	// Crear framer con la configuración adecuada
+	framer := NewFramer(FramingConfig{
+		Method:           config.FramingMethod,
+		ValidateUTF8:     true, // RFC 5424 requiere UTF-8
+		MaxMessageLength: 0,    // Sin límite (el servidor puede imponer límites)
+	})
+
 	for _, message := range config.Messages {
+		// Construir mensaje syslog según RFC 5424 o RFC 3164
 		syslogMsg, err := buildSyslogMessage(config, message)
 		if err != nil {
 			response.Errors = append(response.Errors, fmt.Sprintf("Error building message: %v", err))
 			continue
 		}
 
-		// Aplicar framing según el método configurado
-		framedMsg, err := applyFraming(syslogMsg, config.FramingMethod)
+		// Aplicar framing TCP según RFC 6587 usando el módulo dedicado
+		framedMsg, err := framer.Frame(syslogMsg)
 		if err != nil {
 			response.Errors = append(response.Errors, fmt.Sprintf("Error framing message: %v", err))
 			continue
 		}
 
-		// Enviar con manejo de escrituras parciales
+		// Enviar con manejo robusto de escrituras parciales
 		if err := writeAll(conn, framedMsg); err != nil {
 			log.Printf("Error sending message: %v", err)
 			response.Errors = append(response.Errors, fmt.Sprintf("Error sending message: %v", err))
@@ -255,30 +376,6 @@ func buildRFC3164Message(priority uint8, config SyslogConfig, message string) st
 		priority, timestamp, hostname, appname, message)
 }
 
-// applyFraming aplica el método de framing correspondiente
-func applyFraming(syslogMsg string, method FramingMethod) ([]byte, error) {
-	msgBytes := []byte(syslogMsg)
-
-	switch method {
-	case OctetCounting:
-		// RFC 6587 Octet Counting: MSG-LEN SP SYSLOG-MSG
-		// MSG-LEN es el número de octetos de SYSLOG-MSG
-		msgLen := len(msgBytes)
-		framedMsg := fmt.Sprintf("%d %s", msgLen, syslogMsg)
-		return []byte(framedMsg), nil
-
-	case NonTransparent:
-		// RFC 6587 Non-Transparent-Framing: SYSLOG-MSG LF
-		framedMsg := append(msgBytes, '\n')
-		return framedMsg, nil
-
-	default:
-		// Por defecto, usar non-transparent framing
-		framedMsg := append(msgBytes, '\n')
-		return framedMsg, nil
-	}
-}
-
 // writeAll garantiza que todos los bytes se escriban (maneja escrituras parciales)
 func writeAll(w io.Writer, data []byte) error {
 	totalWritten := 0
@@ -295,35 +392,51 @@ func writeAll(w io.Writer, data []byte) error {
 	return nil
 }
 
-// validateConfig valida la configuración antes de enviar
+// validateConfig valida y normaliza la configuración antes de enviar mensajes
+// Aplica valores por defecto según las recomendaciones de los RFCs
 func validateConfig(config *SyslogConfig) error {
+	// Validaciones requeridas
 	if config.Address == "" {
 		return fmt.Errorf("address is required")
 	}
 	if config.Port == "" {
 		return fmt.Errorf("port is required")
 	}
+
+	// Validar rangos según RFC 5424
 	if config.Facility > 23 {
-		return fmt.Errorf("facility must be 0-23, got %d", config.Facility)
+		return fmt.Errorf("facility must be 0-23 (got %d), see RFC 5424 Section 6.2.1", config.Facility)
 	}
 	if config.Severity > 7 {
-		return fmt.Errorf("severity must be 0-7, got %d", config.Severity)
+		return fmt.Errorf("severity must be 0-7 (got %d), see RFC 5424 Section 6.2.1", config.Severity)
 	}
 
-	// Valores por defecto
+	// Aplicar valores por defecto para framing
 	if config.FramingMethod == "" {
 		if config.Protocol == "tcp" {
-			config.FramingMethod = OctetCounting // Por defecto usar octet-counting en TCP
+			// RFC 6587 recomienda octet-counting como método preferido
+			config.FramingMethod = RecommendedFramingMethod()
+			log.Printf("Using recommended framing method: %s", config.FramingMethod)
 		}
 	}
 
+	// Validar método de framing si se especificó
+	if config.FramingMethod != "" && !IsValidFramingMethod(config.FramingMethod) {
+		return fmt.Errorf("invalid framing method '%s', must be 'octet-counting' or 'non-transparent'",
+			config.FramingMethod)
+	}
+
+	// Aplicar valores por defecto para hostname
 	if config.Hostname == "" {
-		hostname, _ := os.Hostname()
-		if hostname != "" {
+		hostname, err := os.Hostname()
+		if err == nil && hostname != "" {
 			config.Hostname = hostname
+		} else {
+			config.Hostname = "localhost" // Fallback seguro
 		}
 	}
 
+	// Aplicar valor por defecto para appname
 	if config.Appname == "" {
 		config.Appname = "sendlog"
 	}
