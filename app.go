@@ -45,7 +45,8 @@ func (a *App) shutdown(ctx context.Context) {}
 // Si tlsVerify es false, acepta cualquier certificado (útil para certificados autofirmados)
 // Si tlsVerify es true, verifica el certificado usando las CA del sistema
 func dialTLS(address, port string, tlsVerify bool) (net.Conn, error) {
-	fullAddress := fmt.Sprintf("%s:%s", address, port)
+	// net.JoinHostPort maneja correctamente IPv4 e IPv6
+	fullAddress := net.JoinHostPort(address, port)
 
 	// Configuración TLS moderna siguiendo mejores prácticas
 	tlsConfig := &tls.Config{
@@ -116,7 +117,8 @@ func dialConnection(address, port, protocol string, useTLS, tlsVerify bool) (net
 	}
 
 	// Conexión estándar (TCP o UDP sin TLS)
-	fullAddress := fmt.Sprintf("%s:%s", address, port)
+	// net.JoinHostPort maneja correctamente IPv4 e IPv6
+	fullAddress := net.JoinHostPort(address, port)
 	dialer := &net.Dialer{
 		Timeout: 10 * time.Second,
 	}
@@ -170,7 +172,8 @@ type SyslogResponse struct {
 // CheckConnection verifies if a connection can be established
 // Soporta TCP, UDP y TCP+TLS (RFC 5425 para syslog seguro)
 func (a *App) CheckConnection(address string, port string, protocol string, useTLS bool, tlsVerify bool) (bool, error) {
-	fullAddress := fmt.Sprintf("%s:%s", address, port)
+	// net.JoinHostPort maneja correctamente IPv4 e IPv6
+	fullAddress := net.JoinHostPort(address, port)
 
 	// Establecer conexión con soporte TLS
 	conn, err := dialConnection(address, port, protocol, useTLS, tlsVerify)
@@ -222,7 +225,8 @@ func (a *App) SendSyslogMessages(config SyslogConfig) SyslogResponse {
 		return response
 	}
 
-	fullAddress := fmt.Sprintf("%s:%s", config.Address, config.Port)
+	// net.JoinHostPort maneja correctamente IPv4 e IPv6
+	fullAddress := net.JoinHostPort(config.Address, config.Port)
 
 	// Establecer conexión con soporte TLS
 	conn, err := dialConnection(config.Address, config.Port, config.Protocol, config.UseTLS, config.TLSVerify)
