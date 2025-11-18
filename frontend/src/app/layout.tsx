@@ -12,23 +12,14 @@ export const metadata: Metadata = {
   description: "Program created to link logs to a syslog server using TCP/UDP",
 };
 
-// Configuración de viewport optimizada para aplicación de escritorio
-export const viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  themeColor: '#000000',
-};
-
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className="h-full">
-      <body className={`${inter.className} h-full overflow-hidden`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -38,18 +29,14 @@ export default function RootLayout({
           <div className="absolute top-2 right-2 z-50">
             <ModeToggle />
           </div>
-          <main className="flex flex-col h-full bg-background overflow-hidden">
-            <div className="w-full flex flex-col items-center pt-3 pb-2 px-4 flex-shrink-0">
-              <h2 className="text-xl font-bold text-center bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-                SendLog Syslog
-              </h2>
-              <p className="text-xs text-muted-foreground text-center">
-                Connect and send logs to syslog servers
-              </p>
-            </div>
-            <div className="flex-1 w-full overflow-y-auto scrollbar-thin px-4 pb-3 min-h-0">
-              {children}
-            </div>
+          <main className="flex flex-col items-center min-h-screen p-6">
+            <h2 className="text-2xl font-bold text-center mb-3 bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+              SendLog Syslog
+            </h2>
+            <p className="text-sm text-muted-foreground text-center mb-4">
+              Connect and send logs to syslog servers
+            </p>
+            {children}
           </main>
           <Toaster />
         </ThemeProvider>

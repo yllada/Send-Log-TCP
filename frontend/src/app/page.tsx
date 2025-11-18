@@ -4,7 +4,7 @@ import { InputForm } from "@/components/form";
 
 export default function Home() {
   return (
-    <div className="w-full h-full flex justify-center items-start">
+    <div className="max-w-3xl w-full">
       <InputForm />
     </div>
   );
