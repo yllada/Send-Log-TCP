@@ -1,0 +1,105 @@
+name: Build Linux Release
+
+# Trigger del workflow
+on:
+  # Se ejecuta cuando haces push a la rama main o creas un tag
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  # Permite ejecutar manualmente desde la pestaña Actions
+  workflow_dispatch:
+
+# Variables de entorno globales
+env:
+  GO_VERSION: '1.21'
+  NODE_VERSION: '20'
+
+jobs:
+  build-linux:
+    name: Build for Linux
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Checkout del código
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # 2. Instalar dependencias de sistema para Wails (GTK + WebKit)
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libwebkit2gtk-4.0-dev \
+            build-essential \
+            pkg-config \
+            libappindicator3-dev
+
+      # 3. Setup Go con cache de dependencias
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
+
+      # 4. Setup pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      # 5. Setup Node.js con cache integrado
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      # 6. Instalar dependencias del frontend
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: pnpm install --frozen-lockfile
+
+      # 7. Build del frontend (producción)
+      - name: Build frontend
+        working-directory: ./frontend
+        run: pnpm build
+
+      # 8. Instalar Wails CLI
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      # 9. Build de la aplicación Wails para Linux
+      - name: Build Wails application
+        run: wails build -platform linux/amd64
+
+      # 10. Crear nombre del artefacto con timestamp
+      - name: Get timestamp
+        id: timestamp
+        run: echo "timestamp=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+      # 11. Upload del ejecutable como artefacto
+      - name: Upload Linux executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: Send-Log-TCP-linux-${{ steps.timestamp.outputs.timestamp }}
+          path: |
+            build/bin/Sendlog-Syslog
+          retention-days: 30
+
+      # 12. (Opcional) Crear release si es un tag
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/bin/Sendlog-Syslog
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -53,6 +53,17 @@ The application features a clean, card-based interface with:
 - Node.js 18+
 - pnpm
 
+### Linux (Ubuntu/Debian) Dependencies
+```bash
+sudo apt update
+sudo apt install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential pkg-config
+```
+
+Or use the automated script:
+```bash
+./scripts/install-linux-deps.sh
+```
+
 ### Setup
 
 1. Clone the repository:
@@ -80,6 +91,15 @@ wails dev
 ```
 
 ## 🏗️ Building
+
+### Linux (Ubuntu/Debian)
+```bash
+# First time: Install dependencies
+./scripts/install-linux-deps.sh
+
+# Build
+./scripts/build-linux.sh
+```
 
 ### Windows
 ```bash
