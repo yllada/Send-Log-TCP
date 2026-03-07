@@ -1,14 +1,37 @@
 # SendLog Syslog
 
-[![CI](https://github.com/yllada/Send-Log-TCP/actions/workflows/ci.yml/badge.svg)](https://github.com/yllada/Send-Log-TCP/actions/workflows/ci.yml)
-[![Release](https://github.com/yllada/Send-Log-TCP/actions/workflows/release.yml/badge.svg)](https://github.com/yllada/Send-Log-TCP/actions/workflows/release.yml)
-[![Security](https://github.com/yllada/Send-Log-TCP/actions/workflows/security.yml/badge.svg)](https://github.com/yllada/Send-Log-TCP/actions/workflows/security.yml)
-[![License](https://img.shields.io/github/license/yllada/Send-Log-TCP)](LICENSE)
-[![GitHub release](https://img.shields.io/github/v/release/yllada/Send-Log-TCP)](https://github.com/yllada/Send-Log-TCP/releases/latest)
+<div align="center">
 
-A modern desktop application built with **Wails v2** for sending syslog messages to remote servers via TCP or UDP protocols.
+[![Release](https://github.com/Y3LCorp/Send-Log-TCP/actions/workflows/release.yml/badge.svg)](https://github.com/Y3LCorp/Send-Log-TCP/actions/workflows/release.yml)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/Y3LCorp/Send-Log-TCP)](https://github.com/Y3LCorp/Send-Log-TCP/releases/latest)
+[![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/Y3LCorp/Send-Log-TCP/releases)
 
-## 🚀 Features
+**A modern, cross-platform desktop application for sending syslog messages to remote servers via TCP or UDP.**
+
+Built with [Wails v2](https://wails.io/) (Go + Web Technologies) | RFC 5424 & RFC 3164 Compliant
+
+[Download](#-download) • [Features](#-features) • [Documentation](#-documentation) • [Contributing](#-contributing)
+
+</div>
+
+---
+
+## 📋 Table of Contents
+
+- [Features](#-features)
+- [Download](#-download)
+- [Quick Start](#-quick-start)
+- [Usage](#-usage)
+- [Development](#-development)
+- [Documentation](#-documentation)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+---
+
+## ✨ Features
 
 - **Multi-Protocol Support**: Send logs via TCP or UDP
 - **TLS/SSL Encryption**: Secure syslog transmission over TLS (RFC 5425)
@@ -27,59 +50,56 @@ A modern desktop application built with **Wails v2** for sending syslog messages
 - **Modern UI**: Built with Next.js, React, and shadcn/ui components
 - **Dark/Light Theme**: System-aware theme switching
 - **Real-time Connection**: Test and maintain persistent connections
-- **Desktop Optimized**: Fixed window size (950x720) for optimal UX
+- **Cross-Platform**: Windows, macOS (Intel & Apple Silicon), and Linux
 - **Fully Tested**: Comprehensive test suite with benchmarks
 
-## 🎨 UI Components
+### Tech Stack
 
-The application features a clean, card-based interface with:
-- Connection settings panel with real-time status
-- Message configuration with facility and severity selectors
-- Message composition area
-- Toast notifications for feedback
+| Layer | Technologies |
+|-------|-------------|
+| **Backend** | Go 1.22+, Wails v2 |
+| **Frontend** | Next.js, React, TypeScript |
+| **UI** | shadcn/ui, Tailwind CSS |
+| **Forms** | React Hook Form, Zod |
 
-## 🛠️ Tech Stack
+---
 
-### Backend
-- **Go** - Application logic and syslog protocol implementation
-- **Wails v2** - Go + Web frontend framework
+## 📥 Download
 
-### Frontend
-- **Next.js** - React framework
-- **TypeScript** - Type-safe development
-- **shadcn/ui** - Modern UI components
-- **Tailwind CSS** - Utility-first styling
-- **React Hook Form** - Form management
-- **Zod** - Schema validation
-
-## � Download
-
-Pre-built binaries are available in the [Releases](https://github.com/yllada/Send-Log-TCP/releases) page.
+Pre-built binaries are available in the [Releases](https://github.com/Y3LCorp/Send-Log-TCP/releases) page.
 
 ### Windows
 Download `Sendlog-Syslog-windows-amd64.exe` and run it directly.
 
 ### macOS
 Download the appropriate version:
-- **Apple Silicon (M1/M2/M3):** `Sendlog-Syslog-darwin-arm64`
+- **Apple Silicon (M1/M2/M3/M4):** `Sendlog-Syslog-darwin-arm64`
 - **Intel:** `Sendlog-Syslog-darwin-amd64`
 
 ### Linux
 
-**Option 1: DEB Package (Recommended for Debian/Ubuntu)**
+<details>
+<summary><b>DEB Package (Recommended for Debian/Ubuntu)</b></summary>
+
 ```bash
 # Download and install - automatically handles dependencies
 sudo dpkg -i sendlog-syslog_*_amd64.deb
 sudo apt-get install -f  # Install missing dependencies if any
 ```
+</details>
 
-**Option 2: AppImage (Portable, no installation required)**
+<details>
+<summary><b>AppImage (Portable)</b></summary>
+
 ```bash
 chmod +x Sendlog-Syslog-*-x86_64.AppImage
 ./Sendlog-Syslog-*-x86_64.AppImage
 ```
+</details>
 
-**Option 3: Raw Binary**
+<details>
+<summary><b>Raw Binary</b></summary>
+
 ```bash
 # Install dependencies first
 sudo apt install -y libgtk-3-0 libwebkit2gtk-4.1-0  # Ubuntu 24.04+
@@ -90,41 +110,58 @@ sudo apt install -y libgtk-3-0 libwebkit2gtk-4.0-37  # Ubuntu 22.04
 chmod +x Sendlog-Syslog-linux-amd64
 ./Sendlog-Syslog-linux-amd64
 ```
+</details>
 
 ---
 
-## 🛠️ Development Setup
+## 🚀 Quick Start
 
-### Prerequisites
-- Go 1.21+
-- Node.js 18+
-- pnpm
+1. **Download** the appropriate binary for your platform from [Releases](https://github.com/Y3LCorp/Send-Log-TCP/releases/latest)
+2. **Run** the application
+3. **Configure** your syslog server connection:
+   - Enter the server IP address
+   - Set the port (default: `514` for plain, `6514` for TLS)
+   - Select protocol (TCP or UDP)
+4. **Send** your log messages!
 
-### Linux (Ubuntu/Debian) Build Dependencies
-```bash
-# Ubuntu 24.04+
-sudo apt install -y libgtk-3-dev libwebkit2gtk-4.1-dev build-essential pkg-config
+---
 
-# Ubuntu 22.04 and earlier
-sudo apt install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential pkg-config
-```
+## 📖 Usage
 
-Or use the automated script (auto-detects version):
-```bash
-./scripts/install-linux-deps.sh
-```
+### Connection Configuration
 
-### Clone and Setup
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **IP Address** | Syslog server address (IPv4 or IPv6) | - |
+| **Port** | Server port | 514 (plain) / 6514 (TLS) |
+| **Protocol** | TCP or UDP | TCP |
+| **TLS/SSL** | Enable encrypted connection (TCP only) | Off |
+| **Verify Certificate** | Validate server certificate | On |
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yllada/Send-Log-TCP.git
-cd Send-Log-TCP
-```
+### Message Configuration
 
-2. Install Wails CLI:
-```bash
-./scripts/install-wails-cli.sh
+| Setting | Description | Options |
+|---------|-------------|---------|
+| **RFC Format** | Syslog message format | RFC 5424 (modern) / RFC 3164 (legacy) |
+| **Facility** | Message category | 0-23 (e.g., 16 = local0) |
+| **Severity** | Message priority | 0-7 (e.g., 6 = informational) |
+| **Hostname** | Source hostname | Auto-detected or custom |
+| **App Name** | Application identifier | Custom |
+
+### 🔒 TLS/SSL Security
+
+| Feature | Description |
+|---------|-------------|
+| **Port 6514** | Standard port for syslog over TLS (RFC 5425) |
+| **Certificate Verification** | ✅ Enabled: Validates using system CA (production) |
+| | ⚠️ Disabled: Accepts self-signed certs (testing) |
+| **TLS Versions** | TLS 1.2 and TLS 1.3 supported |
+
+> **Note:** TLS is only available for TCP connections. UDP does not support encryption.
+
+---
+
+## 🛠️ Development
 ```
 
 3. Install frontend dependencies:
@@ -238,16 +275,80 @@ Run benchmarks:
 go test -bench=. -benchmem
 ```
 
-## �📄 License
+---
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 📚 Documentation
 
-## 👤 Author
+- **[Technical Documentation](TECHNICAL_DOCUMENTATION.md)** - RFC 6587 implementation details
+- **[Changelog](CHANGELOG.md)** - Version history and release notes
+- **[License](LICENSE)** - Apache 2.0 License
 
-**Yadian Llada Lopez**
-- Email: yadian.llada@gmail.com
-- GitHub: [@yllada](https://github.com/yllada)
+### Reference Standards
+
+| RFC | Description |
+|-----|-------------|
+| [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424) | The Syslog Protocol |
+| [RFC 3164](https://datatracker.ietf.org/doc/html/rfc3164) | BSD Syslog Protocol (legacy) |
+| [RFC 5425](https://datatracker.ietf.org/doc/html/rfc5425) | TLS Transport Mapping for Syslog |
+| [RFC 6587](https://datatracker.ietf.org/doc/html/rfc6587) | Transmission of Syslog Messages over TCP |
+
+---
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome!
+Contributions are welcome! Here's how you can help:
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes using [Conventional Commits](https://www.conventionalcommits.org/):
+   - `feat:` new feature
+   - `fix:` bug fix
+   - `docs:` documentation
+   - `refactor:` code refactoring
+4. **Push** to your branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+### Reporting Issues
+
+Found a bug or have a feature request? [Open an issue](https://github.com/Y3LCorp/Send-Log-TCP/issues/new/choose)!
+
+---
+
+## 📄 License
+
+This project is licensed under the **Apache License 2.0** - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## � Authors
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/yllada">
+        <img src="https://github.com/yllada.png" width="100px;" alt="Yadian Llada Lopez"/>
+        <br />
+        <sub><b>Yadian Llada Lopez</b></sub>
+      </a>
+      <br />
+      <a href="mailto:yadian.llada@gmail.com">📧 Email</a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/JocLRojas">
+        <img src="https://github.com/JocLRojas.png" width="100px;" alt="JocLRojas"/>
+        <br />
+        <sub><b>JocLRojas</b></sub>
+      </a>
+    </td>
+  </tr>
+</table>
+
+---
+
+<div align="center">
+
+**⭐ If you find this project useful, please consider giving it a star!**
+
+Made with ❤️ using [Wails](https://wails.io/) and [Go](https://go.dev/)
+
+</div>
