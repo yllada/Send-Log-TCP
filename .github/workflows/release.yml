@@ -494,18 +494,52 @@ jobs:
         run: |
           VERSION="${{ needs.prepare.outputs.version }}"
           DATE=$(date +%Y-%m-%d)
+          CHANGELOG_CONTENT="${{ needs.prepare.outputs.changelog }}"
           
-          # Crear entrada del changelog
-          ENTRY="## [${VERSION#v}] - ${DATE}\n\n${{ needs.prepare.outputs.changelog }}"
+          # Crear entrada del changelog en archivo temporal
+          cat > /tmp/new_entry.txt << 'ENTRY_EOF'
+          ## [${VERSION#v}] - ${DATE}
           
-          # Insertar después del título principal
-          if grep -q "^## \[" CHANGELOG.md; then
-            # Insertar antes del primer ## [
-            sed -i "0,/^## \[/s//$(echo -e "$ENTRY")\\n\\n## [/" CHANGELOG.md
+          ENTRY_EOF
+          
+          # Reemplazar variables en el archivo temporal
+          echo "## [${VERSION#v}] - ${DATE}" > /tmp/new_entry.txt
+          echo "" >> /tmp/new_entry.txt
+          echo "$CHANGELOG_CONTENT" >> /tmp/new_entry.txt
+          echo "" >> /tmp/new_entry.txt
+          
+          # Verificar si ya existe una sección de versiones
+          if grep -q "^## \[" CHANGELOG.md 2>/dev/null; then
+            # Crear nuevo archivo con la entrada insertada
+            {
+              # Leer hasta la primera línea ## [
+              while IFS= read -r line; do
+                if [[ "$line" =~ ^##\ \[ ]]; then
+                  # Insertar nueva entrada antes
+                  cat /tmp/new_entry.txt
+                  echo "$line"
+                  break
+                else
+                  echo "$line"
+                fi
+              done
+              # Continuar con el resto del archivo
+              cat
+            } < CHANGELOG.md > /tmp/changelog_new.md
+            mv /tmp/changelog_new.md CHANGELOG.md
           else
-            # Agregar al final
-            echo -e "\n$ENTRY" >> CHANGELOG.md
+            # Si no existe CHANGELOG.md o no tiene versiones, crear/agregar
+            if [ ! -f CHANGELOG.md ]; then
+              echo "# Changelog" > CHANGELOG.md
+              echo "" >> CHANGELOG.md
+              echo "All notable changes to this project will be documented in this file." >> CHANGELOG.md
+              echo "" >> CHANGELOG.md
+            fi
+            cat /tmp/new_entry.txt >> CHANGELOG.md
           fi
+          
+          # Limpiar
+          rm -f /tmp/new_entry.txt
           
       - name: Commit changelog
         run: |
