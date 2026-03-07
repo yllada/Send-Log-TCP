@@ -123,8 +123,9 @@ if [ ! -f "$APPIMAGETOOL" ]; then
 fi
 
 # Crear AppImage
+# Usar --appimage-extract-and-run para evitar problemas con FUSE en CI/CD
 echo "🔨 Creando AppImage..."
-ARCH=x86_64 "$APPIMAGETOOL" "$APPDIR" "$OUTPUT_DIR/${APP_NAME}-${APP_VERSION}-x86_64.AppImage"
+ARCH=x86_64 "$APPIMAGETOOL" --appimage-extract-and-run "$APPDIR" "$OUTPUT_DIR/${APP_NAME}-${APP_VERSION}-x86_64.AppImage"
 
 # Limpiar
 rm -rf "$APPDIR"

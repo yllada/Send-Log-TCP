@@ -203,7 +203,8 @@ jobs:
             libappindicator3-dev \
             imagemagick \
             wget \
-            file
+            file \
+            libfuse2
 
       - name: Setup Go
         uses: actions/setup-go@v5
