@@ -1,5 +1,11 @@
 # SendLog Syslog
 
+[![CI](https://github.com/yllada/Send-Log-TCP/actions/workflows/ci.yml/badge.svg)](https://github.com/yllada/Send-Log-TCP/actions/workflows/ci.yml)
+[![Release](https://github.com/yllada/Send-Log-TCP/actions/workflows/release.yml/badge.svg)](https://github.com/yllada/Send-Log-TCP/actions/workflows/release.yml)
+[![Security](https://github.com/yllada/Send-Log-TCP/actions/workflows/security.yml/badge.svg)](https://github.com/yllada/Send-Log-TCP/actions/workflows/security.yml)
+[![License](https://img.shields.io/github/license/yllada/Send-Log-TCP)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/yllada/Send-Log-TCP)](https://github.com/yllada/Send-Log-TCP/releases/latest)
+
 A modern desktop application built with **Wails v2** for sending syslog messages to remote servers via TCP or UDP protocols.
 
 ## 🚀 Features
@@ -46,19 +52,60 @@ The application features a clean, card-based interface with:
 - **React Hook Form** - Form management
 - **Zod** - Schema validation
 
-## 📦 Installation
+## � Download
+
+Pre-built binaries are available in the [Releases](https://github.com/yllada/Send-Log-TCP/releases) page.
+
+### Windows
+Download `Sendlog-Syslog-windows-amd64.exe` and run it directly.
+
+### macOS
+Download the appropriate version:
+- **Apple Silicon (M1/M2/M3):** `Sendlog-Syslog-darwin-arm64`
+- **Intel:** `Sendlog-Syslog-darwin-amd64`
+
+### Linux
+
+**Option 1: DEB Package (Recommended for Debian/Ubuntu)**
+```bash
+# Download and install - automatically handles dependencies
+sudo dpkg -i sendlog-syslog_*_amd64.deb
+sudo apt-get install -f  # Install missing dependencies if any
+```
+
+**Option 2: AppImage (Portable, no installation required)**
+```bash
+chmod +x Sendlog-Syslog-*-x86_64.AppImage
+./Sendlog-Syslog-*-x86_64.AppImage
+```
+
+**Option 3: Raw Binary**
+```bash
+# Install dependencies first
+sudo apt install -y libgtk-3-0 libwebkit2gtk-4.1-0  # Ubuntu 24.04+
+# or
+sudo apt install -y libgtk-3-0 libwebkit2gtk-4.0-37  # Ubuntu 22.04
+
+# Then run the binary
+chmod +x Sendlog-Syslog-linux-amd64
+./Sendlog-Syslog-linux-amd64
+```
+
+---
+
+## 🛠️ Development Setup
 
 ### Prerequisites
 - Go 1.21+
 - Node.js 18+
 - pnpm
 
-### Linux (Ubuntu/Debian) Dependencies
+### Linux (Ubuntu/Debian) Build Dependencies
 ```bash
 # Ubuntu 24.04+
 sudo apt install -y libgtk-3-dev libwebkit2gtk-4.1-dev build-essential pkg-config
 
-# Ubuntu 22.04 y anteriores
+# Ubuntu 22.04 and earlier
 sudo apt install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential pkg-config
 ```
 
@@ -67,7 +114,7 @@ Or use the automated script (auto-detects version):
 ./scripts/install-linux-deps.sh
 ```
 
-### Setup
+### Clone and Setup
 
 1. Clone the repository:
 ```bash

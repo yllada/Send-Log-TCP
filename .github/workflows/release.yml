@@ -200,7 +200,10 @@ jobs:
             libwebkit2gtk-4.1-dev \
             build-essential \
             pkg-config \
-            libappindicator3-dev
+            libappindicator3-dev \
+            imagemagick \
+            wget \
+            file
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -240,8 +243,28 @@ jobs:
       - name: Prepare artifact (Unix)
         if: runner.os != 'Windows' && !matrix.is_app_bundle
         run: |
-          mv "build/bin/${{ matrix.artifact }}" "build/bin/${{ matrix.output }}"
+          cp "build/bin/${{ matrix.artifact }}" "build/bin/${{ matrix.output }}"
           chmod +x "build/bin/${{ matrix.output }}"
+
+      # Linux: Crear paquetes DEB y AppImage
+      - name: Create Linux packages
+        if: runner.os == 'Linux'
+        run: |
+          VERSION="${{ needs.prepare.outputs.version_short }}"
+          
+          # Crear paquete DEB
+          echo "📦 Creating DEB package..."
+          chmod +x ./scripts/package-deb.sh
+          ./scripts/package-deb.sh "$VERSION"
+          
+          # Crear AppImage
+          echo "📦 Creating AppImage..."
+          chmod +x ./scripts/package-appimage.sh
+          ./scripts/package-appimage.sh "$VERSION"
+          
+          # Listar artefactos generados
+          echo "📋 Generated packages:"
+          ls -la build/bin/
           
       - name: Prepare artifact (Windows)
         if: runner.os == 'Windows'
@@ -263,7 +286,16 @@ jobs:
         if: runner.os != 'Windows' && !matrix.is_app_bundle
         run: |
           cd build/bin
+          # Checksum del binario
           sha256sum "${{ matrix.output }}" > "${{ matrix.output }}.sha256"
+          
+          # Checksums de paquetes Linux
+          if [ -f "*.deb" ]; then
+            for f in *.deb; do sha256sum "$f" > "$f.sha256"; done
+          fi
+          if [ -f "*.AppImage" ]; then
+            for f in *.AppImage; do sha256sum "$f" > "$f.sha256"; done
+          fi
           
       - name: Generate checksum (Windows)
         if: runner.os == 'Windows'
@@ -287,6 +319,10 @@ jobs:
           path: |
             build/bin/${{ matrix.output }}
             build/bin/${{ matrix.output }}.sha256
+            build/bin/*.deb
+            build/bin/*.deb.sha256
+            build/bin/*.AppImage
+            build/bin/*.AppImage.sha256
             build/${{ matrix.output }}.zip
             build/${{ matrix.output }}.zip.sha256
           retention-days: 5
@@ -317,7 +353,7 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir -p release
-          find ./artifacts -type f \( -name "*.exe" -o -name "Sendlog-Syslog-linux-*" -o -name "*.zip" -o -name "*.sha256" \) -exec cp {} release/ \;
+          find ./artifacts -type f \( -name "*.exe" -o -name "Sendlog-Syslog-linux-*" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.zip" -o -name "*.sha256" \) -exec cp {} release/ \;
           echo "📦 Release files:"
           ls -la release/
 
@@ -335,11 +371,22 @@ jobs:
             
             ## 📥 Downloads
             
-            | Platform | File | Checksum |
-            |----------|------|----------|
-            | **Windows** (64-bit) | `Sendlog-Syslog-windows-amd64.exe` | `.sha256` |
-            | **Linux** (64-bit) | `Sendlog-Syslog-linux-amd64` | `.sha256` |
-            | **macOS** (Universal) | `Sendlog-Syslog-macos-universal.app.zip` | `.sha256` |
+            ### 🪟 Windows
+            | File | Description |
+            |------|-------------|
+            | `Sendlog-Syslog-windows-amd64.exe` | Windows 64-bit executable |
+            
+            ### 🐧 Linux
+            | File | Description |
+            |------|-------------|
+            | `sendlog-syslog_*.deb` | **Recommended** - Debian/Ubuntu package (auto-installs dependencies) |
+            | `Sendlog-Syslog-*-x86_64.AppImage` | Portable AppImage (no installation needed) |
+            | `Sendlog-Syslog-linux-amd64` | Raw binary (requires manual dependency installation) |
+            
+            ### 🍎 macOS
+            | File | Description |
+            |------|-------------|
+            | `Sendlog-Syslog-macos-universal.app.zip` | macOS Universal (Intel + Apple Silicon) |
             
             ## 🔄 Changelog
             
@@ -348,29 +395,56 @@ jobs:
             ## 📋 Installation
             
             <details>
-            <summary><b>Windows</b></summary>
+            <summary><b>🪟 Windows</b></summary>
             
             1. Download `Sendlog-Syslog-windows-amd64.exe`
             2. Run the executable
             </details>
             
             <details>
-            <summary><b>Linux</b></summary>
+            <summary><b>🐧 Linux - DEB Package (Recommended)</b></summary>
             
             ```bash
-            # Download and make executable
-            chmod +x Sendlog-Syslog-linux-amd64
+            # Download the .deb file, then:
+            sudo apt install ./sendlog-syslog_*.deb
             
-            # Install runtime dependencies (Ubuntu 24.04+)
+            # Dependencies are installed automatically!
+            # Run from applications menu or:
+            sendlog-syslog
+            ```
+            </details>
+            
+            <details>
+            <summary><b>🐧 Linux - AppImage (Portable)</b></summary>
+            
+            ```bash
+            # Download the AppImage, then:
+            chmod +x Sendlog-Syslog-*-x86_64.AppImage
+            ./Sendlog-Syslog-*-x86_64.AppImage
+            
+            # No installation or dependencies needed!
+            ```
+            </details>
+            
+            <details>
+            <summary><b>🐧 Linux - Raw Binary</b></summary>
+            
+            ```bash
+            # Install dependencies first:
+            # Ubuntu 24.04+
             sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0
             
-            # Run
+            # Ubuntu 22.04 and earlier
+            sudo apt install libgtk-3-0 libwebkit2gtk-4.0-37
+            
+            # Then run:
+            chmod +x Sendlog-Syslog-linux-amd64
             ./Sendlog-Syslog-linux-amd64
             ```
             </details>
             
             <details>
-            <summary><b>macOS</b></summary>
+            <summary><b>🍎 macOS</b></summary>
             
             1. Download and unzip `Sendlog-Syslog-macos-universal.app.zip`
             2. Move `Sendlog-Syslog.app` to Applications
