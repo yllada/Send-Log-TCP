@@ -10,6 +10,15 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+)
+
+// Connection timeouts according to best practices
+const (
+	connectionTimeout = 10 * time.Second
+	writeTimeout      = 30 * time.Second
+	readTimeout       = 30 * time.Second
 )
 
 // App struct
@@ -35,11 +44,23 @@ func (a *App) domReady(ctx context.Context) {}
 
 // beforeClose is called when the application is about to quit.
 func (a *App) beforeClose(ctx context.Context) (prevent bool) {
+	// Clean up any active connections
+	a.Disconnect()
 	return false
 }
 
 // shutdown is called at application termination
-func (a *App) shutdown(ctx context.Context) {}
+func (a *App) shutdown(ctx context.Context) {
+	// Ensure all connections are closed
+	a.Disconnect()
+}
+
+// IsConnected returns the current connection state
+func (a *App) IsConnected() bool {
+	a.connMu.Lock()
+	defer a.connMu.Unlock()
+	return a.isConnected
+}
 
 // dialTLS establece una conexión TLS al servidor remoto
 // Si tlsVerify es false, acepta cualquier certificado (útil para certificados autofirmados)
@@ -62,7 +83,7 @@ func dialTLS(address, port string, tlsVerify bool) (net.Conn, error) {
 
 	// Establecer conexión TLS con timeout
 	dialer := &net.Dialer{
-		Timeout: 10 * time.Second,
+		Timeout: connectionTimeout,
 	}
 
 	tlsConn, err := tls.DialWithDialer(dialer, "tcp", fullAddress, tlsConfig)
@@ -120,7 +141,7 @@ func dialConnection(address, port, protocol string, useTLS, tlsVerify bool) (net
 	// net.JoinHostPort maneja correctamente IPv4 e IPv6
 	fullAddress := net.JoinHostPort(address, port)
 	dialer := &net.Dialer{
-		Timeout: 10 * time.Second,
+		Timeout: connectionTimeout,
 	}
 
 	conn, err := dialer.Dial(protocol, fullAddress)
@@ -225,6 +246,11 @@ func (a *App) SendSyslogMessages(config SyslogConfig) SyslogResponse {
 		return response
 	}
 
+	// Emit start event
+	runtime.EventsEmit(a.ctx, "syslog:sending", map[string]interface{}{
+		"total": len(config.Messages),
+	})
+
 	// net.JoinHostPort maneja correctamente IPv4 e IPv6
 	fullAddress := net.JoinHostPort(config.Address, config.Port)
 
@@ -245,14 +271,14 @@ func (a *App) SendSyslogMessages(config SyslogConfig) SyslogResponse {
 
 	// Enviar mensajes según el protocolo
 	if config.Protocol == "tcp" {
-		return sendTCPMessages(conn, config)
+		return a.sendTCPMessages(conn, config)
 	}
-	return sendUDPMessages(conn, config)
+	return a.sendUDPMessages(conn, config)
 }
 
 // sendTCPMessages envía mensajes TCP con el framing adecuado según RFC 6587
 // Utiliza el módulo Framer para aplicar el método de framing configurado
-func sendTCPMessages(conn net.Conn, config SyslogConfig) SyslogResponse {
+func (a *App) sendTCPMessages(conn net.Conn, config SyslogConfig) SyslogResponse {
 	response := SyslogResponse{
 		SentMessages: []string{},
 		Errors:       []string{},
@@ -265,7 +291,8 @@ func sendTCPMessages(conn net.Conn, config SyslogConfig) SyslogResponse {
 		MaxMessageLength: 0,    // Sin límite (el servidor puede imponer límites)
 	})
 
-	for _, message := range config.Messages {
+	totalMessages := len(config.Messages)
+	for i, message := range config.Messages {
 		// Construir mensaje syslog según RFC 5424 o RFC 3164
 		syslogMsg, err := buildSyslogMessage(config, message)
 		if err != nil {
@@ -280,6 +307,11 @@ func sendTCPMessages(conn net.Conn, config SyslogConfig) SyslogResponse {
 			continue
 		}
 
+		// Set write deadline to prevent hanging
+		if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
+			log.Printf("Warning: failed to set write deadline: %v", err)
+		}
+
 		// Enviar con manejo robusto de escrituras parciales
 		if err := writeAll(conn, framedMsg); err != nil {
 			log.Printf("Error sending message: %v", err)
@@ -288,23 +320,42 @@ func sendTCPMessages(conn net.Conn, config SyslogConfig) SyslogResponse {
 			log.Printf("Sent message: %s", syslogMsg)
 			response.SentMessages = append(response.SentMessages, syslogMsg)
 		}
+
+		// Emit progress event
+		runtime.EventsEmit(a.ctx, "syslog:progress", map[string]interface{}{
+			"current": i + 1,
+			"total":   totalMessages,
+			"percent": float64(i+1) / float64(totalMessages) * 100,
+		})
 	}
+
+	// Emit completion event
+	runtime.EventsEmit(a.ctx, "syslog:complete", map[string]interface{}{
+		"sent":   len(response.SentMessages),
+		"errors": len(response.Errors),
+	})
 
 	return response
 }
 
 // sendUDPMessages envía mensajes UDP (un mensaje por paquete, sin framing)
-func sendUDPMessages(conn net.Conn, config SyslogConfig) SyslogResponse {
+func (a *App) sendUDPMessages(conn net.Conn, config SyslogConfig) SyslogResponse {
 	response := SyslogResponse{
 		SentMessages: []string{},
 		Errors:       []string{},
 	}
 
-	for _, message := range config.Messages {
+	totalMessages := len(config.Messages)
+	for i, message := range config.Messages {
 		syslogMsg, err := buildSyslogMessage(config, message)
 		if err != nil {
 			response.Errors = append(response.Errors, fmt.Sprintf("Error building message: %v", err))
 			continue
+		}
+
+		// Set write deadline to prevent hanging
+		if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
+			log.Printf("Warning: failed to set write deadline: %v", err)
 		}
 
 		// UDP no requiere framing, un mensaje por paquete
@@ -315,7 +366,20 @@ func sendUDPMessages(conn net.Conn, config SyslogConfig) SyslogResponse {
 			log.Printf("Sent message: %s", syslogMsg)
 			response.SentMessages = append(response.SentMessages, syslogMsg)
 		}
+
+		// Emit progress event
+		runtime.EventsEmit(a.ctx, "syslog:progress", map[string]interface{}{
+			"current": i + 1,
+			"total":   totalMessages,
+			"percent": float64(i+1) / float64(totalMessages) * 100,
+		})
 	}
+
+	// Emit completion event
+	runtime.EventsEmit(a.ctx, "syslog:complete", map[string]interface{}{
+		"sent":   len(response.SentMessages),
+		"errors": len(response.Errors),
+	})
 
 	return response
 }

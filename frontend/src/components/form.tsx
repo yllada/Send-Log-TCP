@@ -41,10 +41,14 @@ import {
 } from "lucide-react";
 
 const FormSchema = z.object({
-  Address: z.string().ip({ version: "v4", message: "Invalid IP address" }),
-  Port: z.string({ message: "Port is required" }),
+  Address: z.string().ip({ message: "Invalid IP address (IPv4 or IPv6)" }),
+  Port: z.string({ message: "Port is required" })
+    .refine((val: string) => {
+      const num = parseInt(val, 10);
+      return !isNaN(num) && num >= 1 && num <= 65535;
+    }, { message: "Port must be between 1-65535" }),
   Protocol: z.string({ message: "Please select a protocol" }),
-  Messages: z.array(z.string({ message: "Messages cannot be empty" })),
+  Messages: z.string().min(1, { message: "At least one message is required" }),
   FramingMethod: z.enum(["octet-counting", "non-transparent"], {
     message: "Please select a framing method",
   }),
@@ -64,7 +68,7 @@ export function InputForm() {
       Address: "",
       Port: "",
       Protocol: "",
-      Messages: [],
+      Messages: "",
       FramingMethod: "octet-counting",
       Facility: 16, // local0
       Severity: 6, // info
@@ -125,7 +129,7 @@ export function InputForm() {
       Address: data.Address,
       Port: data.Port,
       Protocol: data.Protocol,
-      Messages: data.Messages[0].split("\n").filter((msg) => msg.trim() !== ""),
+      Messages: data.Messages.split("\n").filter((msg: string) => msg.trim() !== ""),
       FramingMethod: data.FramingMethod,
       Facility: data.Facility,
       Severity: data.Severity,
@@ -358,7 +362,7 @@ export function InputForm() {
                         <input
                           type="checkbox"
                           checked={field.value}
-                          onChange={(e) => {
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             field.onChange(e.target.checked);
                             // Auto-sugerir puerto 6514 cuando se activa TLS
                             if (e.target.checked && form.getValues("Port") === "514") {
@@ -457,7 +461,7 @@ export function InputForm() {
                   <FormItem>
                     <FormLabel className="text-xs">Facility</FormLabel>
                     <Select
-                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      onValueChange={(value: string) => field.onChange(parseInt(value))}
                       defaultValue={field.value?.toString()}
                     >
                       <FormControl>
@@ -489,7 +493,7 @@ export function InputForm() {
                   <FormItem>
                     <FormLabel className="text-xs">Severity</FormLabel>
                     <Select
-                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      onValueChange={(value: string) => field.onChange(parseInt(value))}
                       defaultValue={field.value?.toString()}
                     >
                       <FormControl>
@@ -576,7 +580,6 @@ export function InputForm() {
                         placeholder="Type your messages here, one per line..."
                         className="resize-none h-[70px] text-sm"
                         {...field}
-                        onChange={(e) => field.onChange([e.target.value])}
                       />
                     </FormControl>
                     <FormDescription className="text-[10px]">
