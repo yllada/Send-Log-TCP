@@ -55,11 +55,14 @@ The application features a clean, card-based interface with:
 
 ### Linux (Ubuntu/Debian) Dependencies
 ```bash
-sudo apt update
+# Ubuntu 24.04+
+sudo apt install -y libgtk-3-dev libwebkit2gtk-4.1-dev build-essential pkg-config
+
+# Ubuntu 22.04 y anteriores
 sudo apt install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential pkg-config
 ```
 
-Or use the automated script:
+Or use the automated script (auto-detects version):
 ```bash
 ./scripts/install-linux-deps.sh
 ```

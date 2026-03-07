@@ -22,9 +22,16 @@ case $DISTRO in
     ubuntu|debian|linuxmint|pop)
         echo -e "Installing dependencies for Ubuntu/Debian..."
         sudo apt update
+        # Detectar versión de Ubuntu para elegir el paquete correcto
+        if apt-cache show libwebkit2gtk-4.1-dev &>/dev/null; then
+            WEBKIT_PKG="libwebkit2gtk-4.1-dev"
+        else
+            WEBKIT_PKG="libwebkit2gtk-4.0-dev"
+        fi
+        echo -e "Using WebKit package: $WEBKIT_PKG"
         sudo apt install -y \
             libgtk-3-dev \
-            libwebkit2gtk-4.0-dev \
+            $WEBKIT_PKG \
             build-essential \
             pkg-config \
             libappindicator3-dev
@@ -79,7 +86,12 @@ verify_pkg() {
 
 ALL_OK=true
 verify_pkg "gtk+-3.0" || ALL_OK=false
-verify_pkg "webkit2gtk-4.0" || ALL_OK=false
+# Verificar webkit2gtk-4.1 (Ubuntu 24.04+) o 4.0 (versiones anteriores)
+if pkg-config --exists "webkit2gtk-4.1" 2>/dev/null; then
+    verify_pkg "webkit2gtk-4.1" || ALL_OK=false
+else
+    verify_pkg "webkit2gtk-4.0" || ALL_OK=false
+fi
 
 if [ "$ALL_OK" = true ]; then
     echo -e "\n\033[32m✓ All dependencies installed successfully!\033[0m"
