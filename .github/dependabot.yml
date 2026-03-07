@@ -1,0 +1,91 @@
+# =============================================================================
+# Dependabot Configuration
+# =============================================================================
+# Mantiene las dependencias actualizadas automáticamente.
+# Documentación: https://docs.github.com/en/code-security/dependabot
+# =============================================================================
+
+version: 2
+
+updates:
+  # Go modules
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "go"
+    reviewers:
+      - "yllada"
+    open-pull-requests-limit: 5
+    groups:
+      wails:
+        patterns:
+          - "github.com/wailsapp/*"
+
+  # npm (frontend)
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "frontend"
+    reviewers:
+      - "yllada"
+    open-pull-requests-limit: 5
+    groups:
+      # Agrupar actualizaciones de React
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react*"
+      # Agrupar actualizaciones de Next.js
+      nextjs:
+        patterns:
+          - "next"
+          - "eslint-config-next"
+      # Agrupar shadcn/ui y radix
+      ui:
+        patterns:
+          - "@radix-ui/*"
+          - "tailwindcss"
+          - "class-variance-authority"
+          - "clsx"
+          - "tailwind-merge"
+      # Agrupar herramientas de desarrollo
+      dev-tools:
+        patterns:
+          - "typescript"
+          - "eslint*"
+          - "@typescript-eslint/*"
+          - "prettier*"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - "dependencies"
+      - "ci"
+    reviewers:
+      - "yllada"
+    open-pull-requests-limit: 3
