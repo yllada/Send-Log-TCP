@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Menubar,
   MenubarContent,
@@ -18,16 +18,24 @@ import {
 } from "@/components/ui/dialog";
 import { ExternalLink, Info, FileText, LogOut, Github, Code2, Layers } from "lucide-react";
 import { Quit } from "@/wailsjs/runtime/runtime";
+import { GetVersion } from "@/wailsjs/go/main/App";
+
+const GITHUB_URL = "https://github.com/yllada/Send-Log-TCP/";
 
 export function AppMenu() {
   const [showAbout, setShowAbout] = useState(false);
+  const [appVersion, setAppVersion] = useState("loading...");
+
+  useEffect(() => {
+    GetVersion().then(setAppVersion).catch(() => setAppVersion("unknown"));
+  }, []);
 
   const handleExit = () => {
     Quit();
   };
 
   const handleDocumentation = () => {
-    window.open("https://github.com/yllada/Send-Log-TCP", "_blank");
+    window.open(GITHUB_URL, "_blank");
   };
 
   const handleRFCReference = () => {
@@ -90,7 +98,7 @@ export function AppMenu() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground mb-1">Version</p>
-                <p className="font-semibold">1.3.0</p>
+                <p className="font-semibold">{appVersion}</p>
               </div>
               <div>
                 <p className="text-muted-foreground mb-1">License</p>
@@ -140,7 +148,7 @@ export function AppMenu() {
                   <p className="font-semibold">José L. Quiñones Rojas</p>
                 </div>
                 <a
-                  href="https://github.com/yllada/Send-Log-TCP"
+                  href={GITHUB_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"

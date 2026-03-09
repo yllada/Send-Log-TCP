@@ -13,6 +13,9 @@ export namespace main {
 	    UseRFC5424: boolean;
 	    UseTLS: boolean;
 	    TLSVerify: boolean;
+	    CACertPath: string;
+	    ClientCertPath: string;
+	    ClientKeyPath: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new SyslogConfig(source);
@@ -32,6 +35,9 @@ export namespace main {
 	        this.UseRFC5424 = source["UseRFC5424"];
 	        this.UseTLS = source["UseTLS"];
 	        this.TLSVerify = source["TLSVerify"];
+	        this.CACertPath = source["CACertPath"];
+	        this.ClientCertPath = source["ClientCertPath"];
+	        this.ClientKeyPath = source["ClientKeyPath"];
 	    }
 	}
 	export class SyslogResponse {

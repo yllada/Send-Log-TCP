@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"log"
@@ -13,6 +14,10 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
+
+// Version information - injected at build time via ldflags
+// Use: go build -ldflags "-X main.Version=1.4.2"
+var Version = "dev"
 
 // Connection timeouts according to best practices
 const (
@@ -62,10 +67,18 @@ func (a *App) IsConnected() bool {
 	return a.isConnected
 }
 
+// GetVersion returns the application version
+// The version is injected at build time via ldflags
+func (a *App) GetVersion() string {
+	return Version
+}
+
 // dialTLS establece una conexión TLS al servidor remoto
 // Si tlsVerify es false, acepta cualquier certificado (útil para certificados autofirmados)
-// Si tlsVerify es true, verifica el certificado usando las CA del sistema
-func dialTLS(address, port string, tlsVerify bool) (net.Conn, error) {
+// Si tlsVerify es true, verifica el certificado usando las CA del sistema o una CA personalizada
+// caCertPath permite especificar un certificado CA personalizado para verificación
+// clientCertPath y clientKeyPath permiten autenticación mutua TLS (mTLS)
+func dialTLS(address, port string, tlsVerify bool, caCertPath, clientCertPath, clientKeyPath string) (net.Conn, error) {
 	// net.JoinHostPort maneja correctamente IPv4 e IPv6
 	fullAddress := net.JoinHostPort(address, port)
 
@@ -79,6 +92,29 @@ func dialTLS(address, port string, tlsVerify bool) (net.Conn, error) {
 	// Si se verifica el certificado, configurar el ServerName para SNI
 	if tlsVerify {
 		tlsConfig.ServerName = address
+
+		// Si se proporciona un certificado CA personalizado, cargarlo
+		if caCertPath != "" {
+			rootCAs, err := loadCACertificate(caCertPath)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load CA certificate: %w", err)
+			}
+			tlsConfig.RootCAs = rootCAs
+			log.Printf("Using custom CA certificate: %s", caCertPath)
+		}
+	}
+
+	// Cargar certificado del cliente para mTLS si se proporcionan ambos archivos
+	if clientCertPath != "" && clientKeyPath != "" {
+		clientCert, err := loadClientCertificate(clientCertPath, clientKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load client certificate: %w", err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{clientCert}
+		log.Printf("Using client certificate for mTLS: %s", clientCertPath)
+	} else if clientCertPath != "" || clientKeyPath != "" {
+		// Solo uno de los dos fue proporcionado
+		return nil, fmt.Errorf("both client certificate and key are required for mTLS")
 	}
 
 	// Establecer conexión TLS con timeout
@@ -124,9 +160,38 @@ func tlsVersionName(version uint16) string {
 	}
 }
 
+// loadCACertificate carga un certificado CA desde un archivo PEM
+// Soporta archivos con uno o más certificados (CA bundle)
+func loadCACertificate(certPath string) (*x509.CertPool, error) {
+	// Leer el archivo de certificado
+	caCert, err := os.ReadFile(certPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read CA certificate file: %w", err)
+	}
+
+	// Crear un nuevo pool de certificados
+	rootCAs := x509.NewCertPool()
+
+	// Agregar el certificado al pool
+	if ok := rootCAs.AppendCertsFromPEM(caCert); !ok {
+		return nil, fmt.Errorf("failed to parse CA certificate (invalid PEM format)")
+	}
+
+	return rootCAs, nil
+}
+
+// loadClientCertificate carga el certificado y la clave privada del cliente para mTLS
+func loadClientCertificate(certPath, keyPath string) (tls.Certificate, error) {
+	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("failed to load client certificate/key pair: %w", err)
+	}
+	return cert, nil
+}
+
 // dialConnection establece una conexión según el protocolo configurado
-// Soporta TCP, UDP y TCP+TLS (RFC 5425)
-func dialConnection(address, port, protocol string, useTLS, tlsVerify bool) (net.Conn, error) {
+// Soporta TCP, UDP y TCP+TLS (RFC 5425) con mTLS opcional
+func dialConnection(address, port, protocol string, useTLS, tlsVerify bool, caCertPath, clientCertPath, clientKeyPath string) (net.Conn, error) {
 	// Si se solicita TLS pero el protocolo es UDP, retornar error
 	if useTLS && protocol == "udp" {
 		return nil, fmt.Errorf("TLS is not supported over UDP protocol")
@@ -134,7 +199,7 @@ func dialConnection(address, port, protocol string, useTLS, tlsVerify bool) (net
 
 	// Si es TCP con TLS
 	if protocol == "tcp" && useTLS {
-		return dialTLS(address, port, tlsVerify)
+		return dialTLS(address, port, tlsVerify, caCertPath, clientCertPath, clientKeyPath)
 	}
 
 	// Conexión estándar (TCP o UDP sin TLS)
@@ -170,18 +235,21 @@ const (
 )
 
 type SyslogConfig struct {
-	Address       string        `json:"Address"`
-	Port          string        `json:"Port"`
-	Protocol      string        `json:"Protocol"`
-	Messages      []string      `json:"Messages"`
-	FramingMethod FramingMethod `json:"FramingMethod"` // Método de framing (solo TCP)
-	Facility      uint8         `json:"Facility"`      // 0-23 (ej: 16=local0)
-	Severity      uint8         `json:"Severity"`      // 0-7 (ej: 6=info)
-	Hostname      string        `json:"Hostname"`      // Hostname del sistema
-	Appname       string        `json:"Appname"`       // Nombre de la aplicación
-	UseRFC5424    bool          `json:"UseRFC5424"`    // true=RFC5424, false=RFC3164
-	UseTLS        bool          `json:"UseTLS"`        // true=usar TLS para conexión TCP
-	TLSVerify     bool          `json:"TLSVerify"`     // true=verificar certificado del servidor
+	Address        string        `json:"Address"`
+	Port           string        `json:"Port"`
+	Protocol       string        `json:"Protocol"`
+	Messages       []string      `json:"Messages"`
+	FramingMethod  FramingMethod `json:"FramingMethod"`  // Método de framing (solo TCP)
+	Facility       uint8         `json:"Facility"`       // 0-23 (ej: 16=local0)
+	Severity       uint8         `json:"Severity"`       // 0-7 (ej: 6=info)
+	Hostname       string        `json:"Hostname"`       // Hostname del sistema
+	Appname        string        `json:"Appname"`        // Nombre de la aplicación
+	UseRFC5424     bool          `json:"UseRFC5424"`     // true=RFC5424, false=RFC3164
+	UseTLS         bool          `json:"UseTLS"`         // true=usar TLS para conexión TCP
+	TLSVerify      bool          `json:"TLSVerify"`      // true=verificar certificado del servidor
+	CACertPath     string        `json:"CACertPath"`     // Ruta al certificado CA personalizado (opcional)
+	ClientCertPath string        `json:"ClientCertPath"` // Ruta al certificado del cliente para mTLS (opcional)
+	ClientKeyPath  string        `json:"ClientKeyPath"`  // Ruta a la clave privada del cliente para mTLS (opcional)
 }
 
 // SyslogResponse to send back to the frontend
@@ -190,14 +258,80 @@ type SyslogResponse struct {
 	Errors       []string `json:"errors"`
 }
 
+// SelectCACertificate abre un diálogo para seleccionar un archivo de certificado CA
+// Retorna la ruta del archivo seleccionado o una cadena vacía si se cancela
+func (a *App) SelectCACertificate() (string, error) {
+	filePath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Select CA Certificate",
+		Filters: []runtime.FileFilter{
+			{
+				DisplayName: "Certificate Files (*.pem, *.crt, *.cer)",
+				Pattern:     "*.pem;*.crt;*.cer;*.ca-bundle",
+			},
+			{
+				DisplayName: "All Files (*.*)",
+				Pattern:     "*.*",
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to open file dialog: %w", err)
+	}
+	return filePath, nil
+}
+
+// SelectClientCertificate abre un diálogo para seleccionar el certificado del cliente (mTLS)
+// Retorna la ruta del archivo seleccionado o una cadena vacía si se cancela
+func (a *App) SelectClientCertificate() (string, error) {
+	filePath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Select Client Certificate",
+		Filters: []runtime.FileFilter{
+			{
+				DisplayName: "Certificate Files (*.pem, *.crt, *.cer)",
+				Pattern:     "*.pem;*.crt;*.cer",
+			},
+			{
+				DisplayName: "All Files (*.*)",
+				Pattern:     "*.*",
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to open file dialog: %w", err)
+	}
+	return filePath, nil
+}
+
+// SelectClientKey abre un diálogo para seleccionar la clave privada del cliente (mTLS)
+// Retorna la ruta del archivo seleccionado o una cadena vacía si se cancela
+func (a *App) SelectClientKey() (string, error) {
+	filePath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Select Client Private Key",
+		Filters: []runtime.FileFilter{
+			{
+				DisplayName: "Key Files (*.pem, *.key)",
+				Pattern:     "*.pem;*.key",
+			},
+			{
+				DisplayName: "All Files (*.*)",
+				Pattern:     "*.*",
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to open file dialog: %w", err)
+	}
+	return filePath, nil
+}
+
 // CheckConnection verifies if a connection can be established
 // Soporta TCP, UDP y TCP+TLS (RFC 5425 para syslog seguro)
-func (a *App) CheckConnection(address string, port string, protocol string, useTLS bool, tlsVerify bool) (bool, error) {
+func (a *App) CheckConnection(address string, port string, protocol string, useTLS bool, tlsVerify bool, caCertPath string, clientCertPath string, clientKeyPath string) (bool, error) {
 	// net.JoinHostPort maneja correctamente IPv4 e IPv6
 	fullAddress := net.JoinHostPort(address, port)
 
 	// Establecer conexión con soporte TLS
-	conn, err := dialConnection(address, port, protocol, useTLS, tlsVerify)
+	conn, err := dialConnection(address, port, protocol, useTLS, tlsVerify, caCertPath, clientCertPath, clientKeyPath)
 	if err != nil {
 		log.Printf("Error connecting to %s: %v", fullAddress, err)
 		return false, err
@@ -254,8 +388,8 @@ func (a *App) SendSyslogMessages(config SyslogConfig) SyslogResponse {
 	// net.JoinHostPort maneja correctamente IPv4 e IPv6
 	fullAddress := net.JoinHostPort(config.Address, config.Port)
 
-	// Establecer conexión con soporte TLS
-	conn, err := dialConnection(config.Address, config.Port, config.Protocol, config.UseTLS, config.TLSVerify)
+	// Establecer conexión con soporte TLS y mTLS
+	conn, err := dialConnection(config.Address, config.Port, config.Protocol, config.UseTLS, config.TLSVerify, config.CACertPath, config.ClientCertPath, config.ClientKeyPath)
 	if err != nil {
 		log.Printf("Error connecting to %s: %v", fullAddress, err)
 		response.Errors = append(response.Errors, fmt.Sprintf("Error connecting to %s: %v", fullAddress, err))
