@@ -13,6 +13,9 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
 
+// Application identifier for single instance lock
+const appUniqueID = "com.sendlog-syslog"
+
 //go:embed all:frontend/dist
 var assets embed.FS
 
@@ -39,6 +42,14 @@ func main() {
 		BackgroundColour:  &options.RGBA{R: 255, G: 255, B: 255, A: 255},
 		AssetServer: &assetserver.Options{
 			Assets: assets,
+		},
+		// Prevent accidental file drops in the webview
+		DragAndDrop: &options.DragAndDrop{
+			DisableWebViewDrop: true,
+		},
+		// Prevent multiple instances of the application
+		SingleInstanceLock: &options.SingleInstanceLock{
+			UniqueId: appUniqueID,
 		},
 		Menu:             nil,
 		Logger:           nil,

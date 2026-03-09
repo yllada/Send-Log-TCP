@@ -5,8 +5,14 @@ import {main} from '../models';
 export function CheckConnection(arg1:string,arg2:string,arg3:string,arg4:boolean,arg5:boolean,arg6:string,arg7:string,arg8:string):Promise<boolean>;
 
 export function Disconnect():Promise<void>;
+
 export function GetVersion():Promise<string>;
+
 export function IsConnected():Promise<boolean>;
+
+export function OpenGitHub():Promise<void>;
+
+export function OpenURL(arg1:string):Promise<void>;
 
 export function SelectCACertificate():Promise<string>;
 

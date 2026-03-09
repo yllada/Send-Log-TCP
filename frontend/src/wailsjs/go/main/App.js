@@ -18,6 +18,14 @@ export function IsConnected() {
   return window['go']['main']['App']['IsConnected']();
 }
 
+export function OpenGitHub() {
+  return window['go']['main']['App']['OpenGitHub']();
+}
+
+export function OpenURL(arg1) {
+  return window['go']['main']['App']['OpenURL'](arg1);
+}
+
 export function SelectCACertificate() {
   return window['go']['main']['App']['SelectCACertificate']();
 }

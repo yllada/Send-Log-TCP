@@ -45,10 +45,32 @@ func (a *App) startup(ctx context.Context) {
 }
 
 // domReady is called after front-end resources have been loaded
-func (a *App) domReady(ctx context.Context) {}
+func (a *App) domReady(ctx context.Context) {
+	// Center the window on the screen
+	runtime.WindowCenter(a.ctx)
+}
 
 // beforeClose is called when the application is about to quit.
 func (a *App) beforeClose(ctx context.Context) (prevent bool) {
+	// If there's an active connection, ask for confirmation
+	a.connMu.Lock()
+	isConnected := a.isConnected
+	a.connMu.Unlock()
+
+	if isConnected {
+		result, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+			Type:          runtime.QuestionDialog,
+			Title:         "Confirm Exit",
+			Message:       "There is an active connection. Are you sure you want to exit?",
+			Buttons:       []string{"Yes", "No"},
+			DefaultButton: "No",
+			CancelButton:  "No",
+		})
+		if err != nil || result != "Yes" {
+			return true // Prevent close
+		}
+	}
+
 	// Clean up any active connections
 	a.Disconnect()
 	return false
@@ -71,6 +93,17 @@ func (a *App) IsConnected() bool {
 // The version is injected at build time via ldflags
 func (a *App) GetVersion() string {
 	return Version
+}
+
+// OpenURL opens a URL in the default system browser
+func (a *App) OpenURL(url string) {
+	runtime.BrowserOpenURL(a.ctx, url)
+	runtime.LogDebug(a.ctx, "Opened URL in browser: "+url)
+}
+
+// OpenGitHub opens the project's GitHub repository in the default browser
+func (a *App) OpenGitHub() {
+	runtime.BrowserOpenURL(a.ctx, "https://github.com/yllada/Send-Log-TCP")
 }
 
 // dialTLS establece una conexión TLS al servidor remoto
@@ -333,7 +366,7 @@ func (a *App) CheckConnection(address string, port string, protocol string, useT
 	// Establecer conexión con soporte TLS
 	conn, err := dialConnection(address, port, protocol, useTLS, tlsVerify, caCertPath, clientCertPath, clientKeyPath)
 	if err != nil {
-		log.Printf("Error connecting to %s: %v", fullAddress, err)
+		runtime.LogError(a.ctx, fmt.Sprintf("Error connecting to %s: %v", fullAddress, err))
 		return false, err
 	}
 
@@ -347,7 +380,7 @@ func (a *App) CheckConnection(address string, port string, protocol string, useT
 	if useTLS {
 		protocolInfo = fmt.Sprintf("%s+TLS", protocol)
 	}
-	log.Printf("Connected to %s via %s", fullAddress, protocolInfo)
+	runtime.LogInfo(a.ctx, fmt.Sprintf("Connected to %s via %s", fullAddress, protocolInfo))
 	return true, nil
 }
 
@@ -443,15 +476,15 @@ func (a *App) sendTCPMessages(conn net.Conn, config SyslogConfig) SyslogResponse
 
 		// Set write deadline to prevent hanging
 		if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
-			log.Printf("Warning: failed to set write deadline: %v", err)
+			runtime.LogWarning(a.ctx, fmt.Sprintf("Failed to set write deadline: %v", err))
 		}
 
 		// Enviar con manejo robusto de escrituras parciales
 		if err := writeAll(conn, framedMsg); err != nil {
-			log.Printf("Error sending message: %v", err)
+			runtime.LogError(a.ctx, fmt.Sprintf("Error sending message: %v", err))
 			response.Errors = append(response.Errors, fmt.Sprintf("Error sending message: %v", err))
 		} else {
-			log.Printf("Sent message: %s", syslogMsg)
+			runtime.LogDebug(a.ctx, fmt.Sprintf("Sent message: %s", syslogMsg))
 			response.SentMessages = append(response.SentMessages, syslogMsg)
 		}
 
@@ -489,15 +522,15 @@ func (a *App) sendUDPMessages(conn net.Conn, config SyslogConfig) SyslogResponse
 
 		// Set write deadline to prevent hanging
 		if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
-			log.Printf("Warning: failed to set write deadline: %v", err)
+			runtime.LogWarning(a.ctx, fmt.Sprintf("Failed to set write deadline: %v", err))
 		}
 
 		// UDP no requiere framing, un mensaje por paquete
 		if err := writeAll(conn, []byte(syslogMsg)); err != nil {
-			log.Printf("Error sending message: %v", err)
+			runtime.LogError(a.ctx, fmt.Sprintf("Error sending message: %v", err))
 			response.Errors = append(response.Errors, fmt.Sprintf("Error sending message: %v", err))
 		} else {
-			log.Printf("Sent message: %s", syslogMsg)
+			runtime.LogDebug(a.ctx, fmt.Sprintf("Sent message: %s", syslogMsg))
 			response.SentMessages = append(response.SentMessages, syslogMsg)
 		}
 

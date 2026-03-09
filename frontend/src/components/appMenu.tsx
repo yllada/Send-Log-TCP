@@ -18,9 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import { ExternalLink, Info, FileText, LogOut, Github, Code2, Layers } from "lucide-react";
 import { Quit } from "@/wailsjs/runtime/runtime";
-import { GetVersion } from "@/wailsjs/go/main/App";
+import { GetVersion, OpenGitHub, OpenURL } from "@/wailsjs/go/main/App";
 
-const GITHUB_URL = "https://github.com/yllada/Send-Log-TCP/";
+const GITHUB_URL = "https://github.com/Y3LCorp/Send-Log-TCP";
 
 export function AppMenu() {
   const [showAbout, setShowAbout] = useState(false);
@@ -35,11 +35,11 @@ export function AppMenu() {
   };
 
   const handleDocumentation = () => {
-    window.open(GITHUB_URL, "_blank");
+    OpenGitHub();
   };
 
   const handleRFCReference = () => {
-    window.open("https://datatracker.ietf.org/doc/html/rfc5424", "_blank");
+    OpenURL("https://datatracker.ietf.org/doc/html/rfc5424");
   };
 
   return (
@@ -147,16 +147,14 @@ export function AppMenu() {
                   <p className="font-semibold">Yadian Llada Lopez</p>
                   <p className="font-semibold">José L. Quiñones Rojas</p>
                 </div>
-                <a
-                  href={GITHUB_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => OpenGitHub()}
                   className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <Github className="w-5 h-5" />
                   <span className="text-xs">View on GitHub</span>
                   <ExternalLink className="w-3 h-3" />
-                </a>
+                </button>
               </div>
             </div>
           </div>
