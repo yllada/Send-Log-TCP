@@ -48,8 +48,8 @@ type LogTemplate struct {
 
 // StorageData represents the complete storage file structure
 type StorageData struct {
-	Version  int                 `json:"version"`
-	Profiles []ConnectionProfile `json:"profiles"`
+	Version   int                 `json:"version"`
+	Profiles  []ConnectionProfile `json:"profiles"`
 	Templates []LogTemplate       `json:"templates"`
 }
 
