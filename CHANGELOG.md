@@ -1,5 +1,22 @@
 # SendLog Syslog Changelog
 
+## [1.5.0] - 2026-03-10
+
+### ✨ New Features
+- feat: update changelog and package version to 1.5.0 with UI/UX enhancements and technical improvements (b556360)
+- feat: enhance layout and styling for improved user experience (6fd3e4f)
+- feat: enhance application functionality with new URL handling and exit confirmation (1a2b758)
+- feat: add support for custom CA and client certificates for mTLS in connection handling (6bfee71)
+- feat: enhance changelog update process in release workflow (5078458)
+
+### 📚 Documentation
+- docs: update README for improved clarity and structure, enhance feature descriptions (ce2c85f)
+
+### 📝 Other Changes
+- Update dependencies and Go version in go.mod and go.sum (e74258b)
+
+
+
 ## [1.5.0] - 2026-03-09
 
 ### 🎨 UI/UX Overhaul - Fluent Design
