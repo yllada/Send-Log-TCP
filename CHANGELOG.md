@@ -1,5 +1,45 @@
 # SendLog Syslog Changelog
 
+## [1.5.0] - 2026-03-09
+
+### 🎨 UI/UX Overhaul - Fluent Design
+- **Fluent Design System**: Complete UI redesign following Microsoft WinUI 3 guidelines
+  - Modern card-based layout with subtle shadows and rounded corners
+  - Consistent 36px (h-9) input heights across all form elements
+  - Improved spacing and visual hierarchy
+- **Custom App Icon**: New professional icon with Fluent Design aesthetics
+  - Blue gradient background (#0078D4 to #005A9E)
+  - Document with log lines and circular send arrow
+  - Multiple sizes generated (16px to 1024px)
+  - Properly embedded icon for all platforms
+- **Fixed Window Size**: Disabled resize/maximize for consistent experience
+  - 900x700 fixed dimensions
+  - Clean, focused interface without window chrome distractions
+
+### ⚡ Technical Improvements
+- **Tailwind CSS v4**: Migrated to latest Tailwind with CSS-first configuration
+  - Uses `@import "tailwindcss"` and `@theme` block syntax
+  - Removed deprecated tailwind.config.ts
+  - PostCSS integration with `@tailwindcss/postcss`
+- **Next.js 16**: Updated to latest Next.js with Turbopack
+- **Form Alignment**: Fixed grid layout for Connection Settings
+  - 12-column responsive grid system
+  - Proper label-input spacing with space-y-1
+  - Button alignment with pb-[3px] fine-tuning
+
+### 🖥️ Platform Improvements
+- **Linux**: webkit2gtk-4.1 support via `-tags webkit2_41`
+- **Windows**: Mica backdrop effect with transparent webview
+- **macOS**: Native title bar styling with dark appearance
+
+### 📦 Dependencies Updated
+- React 19.2.4
+- Zod 4.3.6 (with new validation API)
+- Lucide React 0.577.0
+- All Radix UI components updated to latest
+
+---
+
 ## [1.3.0] - 2025-11-17
 
 ### 🏗️ Architecture Improvements
