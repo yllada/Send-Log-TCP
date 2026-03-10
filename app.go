@@ -32,6 +32,50 @@ type App struct {
 	conn        net.Conn
 	connMu      sync.Mutex // Mutex para manejar el acceso a la conexión
 	isConnected bool
+
+	// Continuous/Stress test fields
+	continuousCancel    context.CancelFunc
+	continuousMu        sync.RWMutex
+	continuousStats     ContinuousStats
+	isContinuousRunning bool
+}
+
+// ContinuousSendConfig configuration for continuous/stress test mode
+type ContinuousSendConfig struct {
+	// Connection settings (inherited from SyslogConfig)
+	Address        string        `json:"Address"`
+	Port           string        `json:"Port"`
+	Protocol       string        `json:"Protocol"`
+	Message        string        `json:"Message"` // Single message template
+	FramingMethod  FramingMethod `json:"FramingMethod"`
+	Facility       uint8         `json:"Facility"`
+	Severity       uint8         `json:"Severity"`
+	Hostname       string        `json:"Hostname"`
+	Appname        string        `json:"Appname"`
+	UseRFC5424     bool          `json:"UseRFC5424"`
+	UseTLS         bool          `json:"UseTLS"`
+	TLSVerify      bool          `json:"TLSVerify"`
+	CACertPath     string        `json:"CACertPath"`
+	ClientCertPath string        `json:"ClientCertPath"`
+	ClientKeyPath  string        `json:"ClientKeyPath"`
+
+	// Continuous send settings
+	Duration       int  `json:"Duration"`       // Duration in seconds (0 = indefinite)
+	MessagesPerSec int  `json:"MessagesPerSec"` // Rate: messages per second
+	MaxMessages    int  `json:"MaxMessages"`    // Total limit (0 = no limit)
+	RandomizeData  bool `json:"RandomizeData"`  // Add sequence number and timestamp
+}
+
+// ContinuousStats real-time statistics for continuous send
+type ContinuousStats struct {
+	TotalSent      int64   `json:"totalSent"`
+	TotalErrors    int64   `json:"totalErrors"`
+	CurrentRate    float64 `json:"currentRate"` // Actual msgs/sec
+	ElapsedSeconds float64 `json:"elapsedSeconds"`
+	IsRunning      bool    `json:"isRunning"`
+	StartTime      int64   `json:"startTime"`  // Unix timestamp
+	TargetRate     int     `json:"targetRate"` // Configured rate
+	Duration       int     `json:"duration"`   // Configured duration
 }
 
 // NewApp creates a new App application struct
@@ -677,4 +721,226 @@ func validateConfig(config *SyslogConfig) error {
 	}
 
 	return nil
+}
+
+// ================================================================================
+// CONTINUOUS / STRESS TEST MODE
+// ================================================================================
+
+// IsContinuousRunning returns whether continuous send is currently active
+func (a *App) IsContinuousRunning() bool {
+	a.continuousMu.RLock()
+	defer a.continuousMu.RUnlock()
+	return a.isContinuousRunning
+}
+
+// GetContinuousStats returns current statistics for continuous send
+func (a *App) GetContinuousStats() ContinuousStats {
+	a.continuousMu.RLock()
+	defer a.continuousMu.RUnlock()
+	return a.continuousStats
+}
+
+// StartContinuousSend starts sending messages continuously based on config
+// Uses goroutine with context cancellation for clean shutdown
+func (a *App) StartContinuousSend(config ContinuousSendConfig) error {
+	a.continuousMu.Lock()
+	if a.isContinuousRunning {
+		a.continuousMu.Unlock()
+		return fmt.Errorf("continuous send already running")
+	}
+
+	// Create cancellation context
+	ctx, cancel := context.WithCancel(a.ctx)
+	a.continuousCancel = cancel
+	a.isContinuousRunning = true
+	a.continuousStats = ContinuousStats{
+		TotalSent:   0,
+		TotalErrors: 0,
+		CurrentRate: 0,
+		IsRunning:   true,
+		StartTime:   time.Now().Unix(),
+		TargetRate:  config.MessagesPerSec,
+		Duration:    config.Duration,
+	}
+	a.continuousMu.Unlock()
+
+	// Emit started event
+	runtime.EventsEmit(a.ctx, "continuous:started", a.continuousStats)
+
+	// Start the background goroutine
+	go a.runContinuousSend(ctx, config)
+
+	return nil
+}
+
+// StopContinuousSend stops the continuous send operation
+func (a *App) StopContinuousSend() {
+	a.continuousMu.Lock()
+	defer a.continuousMu.Unlock()
+
+	if a.continuousCancel != nil {
+		a.continuousCancel()
+		a.continuousCancel = nil
+	}
+	a.isContinuousRunning = false
+	a.continuousStats.IsRunning = false
+
+	// Emit stopped event
+	runtime.EventsEmit(a.ctx, "continuous:stopped", a.continuousStats)
+}
+
+// runContinuousSend is the goroutine that handles continuous message sending
+func (a *App) runContinuousSend(ctx context.Context, config ContinuousSendConfig) {
+	defer func() {
+		a.continuousMu.Lock()
+		a.isContinuousRunning = false
+		a.continuousStats.IsRunning = false
+		a.continuousMu.Unlock()
+		runtime.EventsEmit(a.ctx, "continuous:stopped", a.GetContinuousStats())
+	}()
+
+	// Build syslog config from continuous config
+	syslogConfig := SyslogConfig{
+		Address:        config.Address,
+		Port:           config.Port,
+		Protocol:       config.Protocol,
+		FramingMethod:  config.FramingMethod,
+		Facility:       config.Facility,
+		Severity:       config.Severity,
+		Hostname:       config.Hostname,
+		Appname:        config.Appname,
+		UseRFC5424:     config.UseRFC5424,
+		UseTLS:         config.UseTLS,
+		TLSVerify:      config.TLSVerify,
+		CACertPath:     config.CACertPath,
+		ClientCertPath: config.ClientCertPath,
+		ClientKeyPath:  config.ClientKeyPath,
+	}
+
+	// Validate config
+	if err := validateConfig(&syslogConfig); err != nil {
+		runtime.LogError(a.ctx, fmt.Sprintf("Invalid config: %v", err))
+		runtime.EventsEmit(a.ctx, "continuous:error", err.Error())
+		return
+	}
+
+	// Establish connection
+	conn, err := dialConnection(
+		config.Address, config.Port, config.Protocol,
+		config.UseTLS, config.TLSVerify,
+		config.CACertPath, config.ClientCertPath, config.ClientKeyPath,
+	)
+	if err != nil {
+		runtime.LogError(a.ctx, fmt.Sprintf("Connection failed: %v", err))
+		runtime.EventsEmit(a.ctx, "continuous:error", err.Error())
+		return
+	}
+	defer conn.Close()
+
+	// Create framer for TCP
+	var framer *Framer
+	if config.Protocol == "tcp" {
+		framer = NewFramer(FramingConfig{
+			Method:           config.FramingMethod,
+			ValidateUTF8:     true,
+			MaxMessageLength: 0,
+		})
+	}
+
+	// Calculate interval for rate limiting
+	// Using time.Ticker for precise rate control
+	interval := time.Second / time.Duration(config.MessagesPerSec)
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	// Duration timer if configured
+	var durationTimer <-chan time.Time
+	if config.Duration > 0 {
+		durationTimer = time.After(time.Duration(config.Duration) * time.Second)
+	}
+
+	// Stats tracking
+	startTime := time.Now()
+	var sentCount, errorCount int64
+	var sequenceNum int64
+	lastStatsUpdate := time.Now()
+
+	// Main loop
+	for {
+		select {
+		case <-ctx.Done():
+			// Cancelled by StopContinuousSend
+			return
+
+		case <-durationTimer:
+			// Duration expired
+			runtime.LogInfo(a.ctx, "Continuous send duration completed")
+			return
+
+		case <-ticker.C:
+			// Check max messages limit
+			if config.MaxMessages > 0 && sentCount >= int64(config.MaxMessages) {
+				runtime.LogInfo(a.ctx, fmt.Sprintf("Max messages limit reached: %d", config.MaxMessages))
+				return
+			}
+
+			// Build message with optional randomization
+			message := config.Message
+			if config.RandomizeData {
+				sequenceNum++
+				message = fmt.Sprintf("[seq=%d ts=%s] %s",
+					sequenceNum,
+					time.Now().Format("15:04:05.000"),
+					config.Message,
+				)
+			}
+
+			// Build syslog message
+			syslogMsg, err := buildSyslogMessage(syslogConfig, message)
+			if err != nil {
+				errorCount++
+				continue
+			}
+
+			// Send message
+			var sendErr error
+			if config.Protocol == "tcp" && framer != nil {
+				framedMsg, err := framer.Frame(syslogMsg)
+				if err != nil {
+					errorCount++
+					continue
+				}
+				conn.SetWriteDeadline(time.Now().Add(writeTimeout))
+				sendErr = writeAll(conn, framedMsg)
+			} else {
+				conn.SetWriteDeadline(time.Now().Add(writeTimeout))
+				sendErr = writeAll(conn, []byte(syslogMsg))
+			}
+
+			if sendErr != nil {
+				errorCount++
+				runtime.LogWarning(a.ctx, fmt.Sprintf("Send error: %v", sendErr))
+			} else {
+				sentCount++
+			}
+
+			// Update stats every 250ms to reduce overhead
+			if time.Since(lastStatsUpdate) >= 250*time.Millisecond {
+				elapsed := time.Since(startTime).Seconds()
+				currentRate := float64(sentCount) / elapsed
+
+				a.continuousMu.Lock()
+				a.continuousStats.TotalSent = sentCount
+				a.continuousStats.TotalErrors = errorCount
+				a.continuousStats.ElapsedSeconds = elapsed
+				a.continuousStats.CurrentRate = currentRate
+				stats := a.continuousStats
+				a.continuousMu.Unlock()
+
+				runtime.EventsEmit(a.ctx, "continuous:stats", stats)
+				lastStatsUpdate = time.Now()
+			}
+		}
+	}
 }

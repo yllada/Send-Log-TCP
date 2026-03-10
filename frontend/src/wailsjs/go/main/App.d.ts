@@ -6,9 +6,13 @@ export function CheckConnection(arg1:string,arg2:string,arg3:string,arg4:boolean
 
 export function Disconnect():Promise<void>;
 
+export function GetContinuousStats():Promise<main.ContinuousStats>;
+
 export function GetVersion():Promise<string>;
 
 export function IsConnected():Promise<boolean>;
+
+export function IsContinuousRunning():Promise<boolean>;
 
 export function OpenGitHub():Promise<void>;
 
@@ -21,3 +25,7 @@ export function SelectClientCertificate():Promise<string>;
 export function SelectClientKey():Promise<string>;
 
 export function SendSyslogMessages(arg1:main.SyslogConfig):Promise<main.SyslogResponse>;
+
+export function StartContinuousSend(arg1:main.ContinuousSendConfig):Promise<void>;
+
+export function StopContinuousSend():Promise<void>;

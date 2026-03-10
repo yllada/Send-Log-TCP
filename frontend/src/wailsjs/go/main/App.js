@@ -10,12 +10,20 @@ export function Disconnect() {
   return window['go']['main']['App']['Disconnect']();
 }
 
+export function GetContinuousStats() {
+  return window['go']['main']['App']['GetContinuousStats']();
+}
+
 export function GetVersion() {
   return window['go']['main']['App']['GetVersion']();
 }
 
 export function IsConnected() {
   return window['go']['main']['App']['IsConnected']();
+}
+
+export function IsContinuousRunning() {
+  return window['go']['main']['App']['IsContinuousRunning']();
 }
 
 export function OpenGitHub() {
@@ -40,4 +48,12 @@ export function SelectClientKey() {
 
 export function SendSyslogMessages(arg1) {
   return window['go']['main']['App']['SendSyslogMessages'](arg1);
+}
+
+export function StartContinuousSend(arg1) {
+  return window['go']['main']['App']['StartContinuousSend'](arg1);
+}
+
+export function StopContinuousSend() {
+  return window['go']['main']['App']['StopContinuousSend']();
 }
