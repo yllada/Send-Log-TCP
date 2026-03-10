@@ -1,5 +1,21 @@
 export namespace main {
 	
+	export class BatchImportResult {
+	    messages: string[];
+	    totalLines: number;
+	    errors: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new BatchImportResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.messages = source["messages"];
+	        this.totalLines = source["totalLines"];
+	        this.errors = source["errors"];
+	    }
+	}
 	export class ConnectionProfile {
 	    id: string;
 	    name: string;

@@ -22,6 +22,8 @@ export function GetVersion():Promise<string>;
 
 export function ImportConfig(arg1:string,arg2:boolean):Promise<void>;
 
+export function ImportLogFile(arg1:string):Promise<main.BatchImportResult>;
+
 export function IsConnected():Promise<boolean>;
 
 export function IsContinuousRunning():Promise<boolean>;
@@ -39,6 +41,8 @@ export function SelectCACertificate():Promise<string>;
 export function SelectClientCertificate():Promise<string>;
 
 export function SelectClientKey():Promise<string>;
+
+export function SelectLogFile():Promise<string>;
 
 export function SendSyslogMessages(arg1:main.SyslogConfig):Promise<main.SyslogResponse>;
 

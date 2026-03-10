@@ -42,6 +42,10 @@ export function ImportConfig(arg1, arg2) {
   return window['go']['main']['App']['ImportConfig'](arg1, arg2);
 }
 
+export function ImportLogFile(arg1) {
+  return window['go']['main']['App']['ImportLogFile'](arg1);
+}
+
 export function IsConnected() {
   return window['go']['main']['App']['IsConnected']();
 }
@@ -76,6 +80,10 @@ export function SelectClientCertificate() {
 
 export function SelectClientKey() {
   return window['go']['main']['App']['SelectClientKey']();
+}
+
+export function SelectLogFile() {
+  return window['go']['main']['App']['SelectLogFile']();
 }
 
 export function SendSyslogMessages(arg1) {

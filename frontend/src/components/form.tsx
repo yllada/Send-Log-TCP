@@ -50,6 +50,7 @@ import {
 } from "lucide-react";
 import { ProfileManager } from "@/components/profile-manager";
 import { TemplateManager } from "@/components/template-manager";
+import { BatchImport } from "@/components/batch-import";
 
 // IP validation regex (IPv4 and IPv6)
 const ipRegex = /^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}|(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}|(?:[a-fA-F0-9]{1,4}:){1,7}:|(?:[a-fA-F0-9]{1,4}:){1,6}:[a-fA-F0-9]{1,4}|::(?:[a-fA-F0-9]{1,4}:){0,5}[a-fA-F0-9]{1,4}|[a-fA-F0-9]{1,4}::(?:[a-fA-F0-9]{1,4}:){0,4}[a-fA-F0-9]{1,4}|localhost)$/;
@@ -905,10 +906,18 @@ export function InputForm() {
         {isConnected ? (
           <Card>
             <CardHeader className="pb-2 pt-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <SendIcon className="w-4 h-4" />
-                Send Messages
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <SendIcon className="w-4 h-4" />
+                  Send Messages
+                </CardTitle>
+                <BatchImport
+                  currentMessages={form.watch("Messages")}
+                  onImport={(messages) => {
+                    form.setValue("Messages", messages.join("\n"));
+                  }}
+                />
+              </div>
             </CardHeader>
             <CardContent className="space-y-3 pb-3">
               <FormField
