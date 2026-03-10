@@ -12,39 +12,8 @@ import (
 // ================================================================================
 // CONNECTION PROFILES & LOG TEMPLATES STORAGE
 // Enterprise feature: Persistent storage for user configurations
+// Note: Types ConnectionProfile and LogTemplate are defined in app.go
 // ================================================================================
-
-// ConnectionProfile represents a saved connection configuration
-type ConnectionProfile struct {
-	ID             string        `json:"id"`
-	Name           string        `json:"name"`
-	Description    string        `json:"description,omitempty"`
-	Address        string        `json:"address"`
-	Port           string        `json:"port"`
-	Protocol       string        `json:"protocol"`
-	FramingMethod  FramingMethod `json:"framingMethod"`
-	UseTLS         bool          `json:"useTls"`
-	TLSVerify      bool          `json:"tlsVerify"`
-	CACertPath     string        `json:"caCertPath,omitempty"`
-	ClientCertPath string        `json:"clientCertPath,omitempty"`
-	ClientKeyPath  string        `json:"clientKeyPath,omitempty"`
-	CreatedAt      int64         `json:"createdAt"`
-	UpdatedAt      int64         `json:"updatedAt"`
-}
-
-// LogTemplate represents a reusable log message template
-type LogTemplate struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	Message     string `json:"message"`
-	Facility    uint8  `json:"facility"`
-	Severity    uint8  `json:"severity"`
-	Appname     string `json:"appname"`
-	UseRFC5424  bool   `json:"useRfc5424"`
-	CreatedAt   int64  `json:"createdAt"`
-	UpdatedAt   int64  `json:"updatedAt"`
-}
 
 // StorageData represents the complete storage file structure
 type StorageData struct {
@@ -132,8 +101,8 @@ func generateID() string {
 // CONNECTION PROFILES API
 // ================================================================================
 
-// GetProfiles returns all saved connection profiles
-func (a *App) GetProfiles() ([]ConnectionProfile, error) {
+// getProfilesFromStorage returns all saved connection profiles
+func getProfilesFromStorage() ([]ConnectionProfile, error) {
 	storage, err := loadStorage()
 	if err != nil {
 		return nil, err
@@ -147,8 +116,8 @@ func (a *App) GetProfiles() ([]ConnectionProfile, error) {
 	return storage.Profiles, nil
 }
 
-// SaveProfile saves a new or updates an existing connection profile
-func (a *App) SaveProfile(profile ConnectionProfile) (ConnectionProfile, error) {
+// saveProfileToStorage saves a new or updates an existing connection profile
+func saveProfileToStorage(profile ConnectionProfile) (ConnectionProfile, error) {
 	storage, err := loadStorage()
 	if err != nil {
 		return ConnectionProfile{}, err
@@ -186,8 +155,8 @@ func (a *App) SaveProfile(profile ConnectionProfile) (ConnectionProfile, error) 
 	return profile, nil
 }
 
-// DeleteProfile deletes a connection profile by ID
-func (a *App) DeleteProfile(id string) error {
+// deleteProfileFromStorage deletes a connection profile by ID
+func deleteProfileFromStorage(id string) error {
 	storage, err := loadStorage()
 	if err != nil {
 		return err
@@ -213,8 +182,8 @@ func (a *App) DeleteProfile(id string) error {
 // LOG TEMPLATES API
 // ================================================================================
 
-// GetTemplates returns all saved log templates
-func (a *App) GetTemplates() ([]LogTemplate, error) {
+// getTemplatesFromStorage returns all saved log templates
+func getTemplatesFromStorage() ([]LogTemplate, error) {
 	storage, err := loadStorage()
 	if err != nil {
 		return nil, err
@@ -228,8 +197,8 @@ func (a *App) GetTemplates() ([]LogTemplate, error) {
 	return storage.Templates, nil
 }
 
-// SaveTemplate saves a new or updates an existing log template
-func (a *App) SaveTemplate(template LogTemplate) (LogTemplate, error) {
+// saveTemplateToStorage saves a new or updates an existing log template
+func saveTemplateToStorage(template LogTemplate) (LogTemplate, error) {
 	storage, err := loadStorage()
 	if err != nil {
 		return LogTemplate{}, err
@@ -267,8 +236,8 @@ func (a *App) SaveTemplate(template LogTemplate) (LogTemplate, error) {
 	return template, nil
 }
 
-// DeleteTemplate deletes a log template by ID
-func (a *App) DeleteTemplate(id string) error {
+// deleteTemplateFromStorage deletes a log template by ID
+func deleteTemplateFromStorage(id string) error {
 	storage, err := loadStorage()
 	if err != nil {
 		return err
@@ -294,8 +263,8 @@ func (a *App) DeleteTemplate(id string) error {
 // IMPORT/EXPORT API
 // ================================================================================
 
-// ExportConfig exports all profiles and templates to a JSON string
-func (a *App) ExportConfig() (string, error) {
+// exportConfigFromStorage exports all profiles and templates to a JSON string
+func exportConfigFromStorage() (string, error) {
 	storage, err := loadStorage()
 	if err != nil {
 		return "", err
@@ -309,9 +278,9 @@ func (a *App) ExportConfig() (string, error) {
 	return string(data), nil
 }
 
-// ImportConfig imports profiles and templates from a JSON string
+// importConfigToStorage imports profiles and templates from a JSON string
 // merge=true will add to existing, merge=false will replace all
-func (a *App) ImportConfig(jsonData string, merge bool) error {
+func importConfigToStorage(jsonData string, merge bool) error {
 	var importedStorage StorageData
 	if err := json.Unmarshal([]byte(jsonData), &importedStorage); err != nil {
 		return fmt.Errorf("invalid import data: %w", err)

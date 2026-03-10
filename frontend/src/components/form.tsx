@@ -46,7 +46,10 @@ import {
   XIcon,
   KeyIcon,
   ShieldCheckIcon,
+  FileTextIcon,
 } from "lucide-react";
+import { ProfileManager } from "@/components/profile-manager";
+import { TemplateManager } from "@/components/template-manager";
 
 // IP validation regex (IPv4 and IPv6)
 const ipRegex = /^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}|(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}|(?:[a-fA-F0-9]{1,4}:){1,7}:|(?:[a-fA-F0-9]{1,4}:){1,6}:[a-fA-F0-9]{1,4}|::(?:[a-fA-F0-9]{1,4}:){0,5}[a-fA-F0-9]{1,4}|[a-fA-F0-9]{1,4}::(?:[a-fA-F0-9]{1,4}:){0,4}[a-fA-F0-9]{1,4}|localhost)$/;
@@ -332,10 +335,36 @@ export function InputForm() {
         {/* Connection Settings Card */}
         <Card>
           <CardHeader className="pb-2 pt-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <NetworkIcon className="w-4 h-4" />
-              Connection Settings
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <NetworkIcon className="w-4 h-4" />
+                Connection Settings
+              </CardTitle>
+              <ProfileManager
+                currentValues={{
+                  Address: form.watch("Address"),
+                  Port: form.watch("Port"),
+                  Protocol: form.watch("Protocol"),
+                  FramingMethod: form.watch("FramingMethod"),
+                  UseTLS: form.watch("UseTLS"),
+                  TLSVerify: form.watch("TLSVerify"),
+                  CACertPath: form.watch("CACertPath") || "",
+                  ClientCertPath: form.watch("ClientCertPath") || "",
+                  ClientKeyPath: form.watch("ClientKeyPath") || "",
+                }}
+                onLoadProfile={(profile) => {
+                  form.setValue("Address", profile.address);
+                  form.setValue("Port", profile.port);
+                  form.setValue("Protocol", profile.protocol);
+                  form.setValue("FramingMethod", profile.framingMethod as "octet-counting" | "non-transparent");
+                  form.setValue("UseTLS", profile.useTls);
+                  form.setValue("TLSVerify", profile.tlsVerify);
+                  form.setValue("CACertPath", profile.caCertPath || "");
+                  form.setValue("ClientCertPath", profile.clientCertPath || "");
+                  form.setValue("ClientKeyPath", profile.clientKeyPath || "");
+                }}
+              />
+            </div>
           </CardHeader>
           <CardContent className="space-y-3 pb-3">
             {/* Row 1: IP, Port, Protocol, Connect Button */}
@@ -719,7 +748,28 @@ export function InputForm() {
         {/* Message Format Card */}
         <Card>
           <CardHeader className="pb-2 pt-3">
-            <CardTitle className="text-sm font-semibold">Message Configuration</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <FileTextIcon className="w-4 h-4" />
+                Message Configuration
+              </CardTitle>
+              <TemplateManager
+                currentValues={{
+                  Messages: form.watch("Messages"),
+                  Facility: form.watch("Facility"),
+                  Severity: form.watch("Severity"),
+                  Appname: form.watch("Appname"),
+                  UseRFC5424: form.watch("UseRFC5424"),
+                }}
+                onLoadTemplate={(template) => {
+                  form.setValue("Messages", template.message);
+                  form.setValue("Facility", template.facility);
+                  form.setValue("Severity", template.severity);
+                  form.setValue("Appname", template.appname);
+                  form.setValue("UseRFC5424", template.useRfc5424);
+                }}
+              />
+            </div>
           </CardHeader>
           <CardContent className="space-y-3 pb-3">
             <FormField

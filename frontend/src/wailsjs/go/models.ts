@@ -1,5 +1,43 @@
 export namespace main {
 	
+	export class ConnectionProfile {
+	    id: string;
+	    name: string;
+	    description?: string;
+	    address: string;
+	    port: string;
+	    protocol: string;
+	    framingMethod: string;
+	    useTls: boolean;
+	    tlsVerify: boolean;
+	    caCertPath?: string;
+	    clientCertPath?: string;
+	    clientKeyPath?: string;
+	    createdAt: number;
+	    updatedAt: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ConnectionProfile(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.address = source["address"];
+	        this.port = source["port"];
+	        this.protocol = source["protocol"];
+	        this.framingMethod = source["framingMethod"];
+	        this.useTls = source["useTls"];
+	        this.tlsVerify = source["tlsVerify"];
+	        this.caCertPath = source["caCertPath"];
+	        this.clientCertPath = source["clientCertPath"];
+	        this.clientKeyPath = source["clientKeyPath"];
+	        this.createdAt = source["createdAt"];
+	        this.updatedAt = source["updatedAt"];
+	    }
+	}
 	export class ContinuousSendConfig {
 	    Address: string;
 	    Port: string;
@@ -72,6 +110,36 @@ export namespace main {
 	        this.startTime = source["startTime"];
 	        this.targetRate = source["targetRate"];
 	        this.duration = source["duration"];
+	    }
+	}
+	export class LogTemplate {
+	    id: string;
+	    name: string;
+	    description?: string;
+	    message: string;
+	    facility: number;
+	    severity: number;
+	    appname: string;
+	    useRfc5424: boolean;
+	    createdAt: number;
+	    updatedAt: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new LogTemplate(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.message = source["message"];
+	        this.facility = source["facility"];
+	        this.severity = source["severity"];
+	        this.appname = source["appname"];
+	        this.useRfc5424 = source["useRfc5424"];
+	        this.createdAt = source["createdAt"];
+	        this.updatedAt = source["updatedAt"];
 	    }
 	}
 	export class SyslogConfig {

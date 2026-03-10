@@ -78,6 +78,42 @@ type ContinuousStats struct {
 	Duration       int     `json:"duration"`   // Configured duration
 }
 
+// ================================================================================
+// CONNECTION PROFILES & LOG TEMPLATES (Enterprise Features)
+// ================================================================================
+
+// ConnectionProfile represents a saved connection configuration
+type ConnectionProfile struct {
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	Description    string `json:"description,omitempty"`
+	Address        string `json:"address"`
+	Port           string `json:"port"`
+	Protocol       string `json:"protocol"`
+	FramingMethod  string `json:"framingMethod"`
+	UseTLS         bool   `json:"useTls"`
+	TLSVerify      bool   `json:"tlsVerify"`
+	CACertPath     string `json:"caCertPath,omitempty"`
+	ClientCertPath string `json:"clientCertPath,omitempty"`
+	ClientKeyPath  string `json:"clientKeyPath,omitempty"`
+	CreatedAt      int64  `json:"createdAt"`
+	UpdatedAt      int64  `json:"updatedAt"`
+}
+
+// LogTemplate represents a reusable log message template
+type LogTemplate struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Message     string `json:"message"`
+	Facility    uint8  `json:"facility"`
+	Severity    uint8  `json:"severity"`
+	Appname     string `json:"appname"`
+	UseRFC5424  bool   `json:"useRfc5424"`
+	CreatedAt   int64  `json:"createdAt"`
+	UpdatedAt   int64  `json:"updatedAt"`
+}
+
 // NewApp creates a new App application struct
 func NewApp() *App {
 	return &App{}
@@ -943,4 +979,56 @@ func (a *App) runContinuousSend(ctx context.Context, config ContinuousSendConfig
 			}
 		}
 	}
+}
+
+// ================================================================================
+// CONNECTION PROFILES API (Enterprise Features)
+// ================================================================================
+
+// GetProfiles returns all saved connection profiles
+func (a *App) GetProfiles() ([]ConnectionProfile, error) {
+	return getProfilesFromStorage()
+}
+
+// SaveProfile saves a new or updates an existing connection profile
+func (a *App) SaveProfile(profile ConnectionProfile) (ConnectionProfile, error) {
+	return saveProfileToStorage(profile)
+}
+
+// DeleteProfile deletes a connection profile by ID
+func (a *App) DeleteProfile(id string) error {
+	return deleteProfileFromStorage(id)
+}
+
+// ================================================================================
+// LOG TEMPLATES API (Enterprise Features)
+// ================================================================================
+
+// GetTemplates returns all saved log templates
+func (a *App) GetTemplates() ([]LogTemplate, error) {
+	return getTemplatesFromStorage()
+}
+
+// SaveTemplate saves a new or updates an existing log template
+func (a *App) SaveTemplate(template LogTemplate) (LogTemplate, error) {
+	return saveTemplateToStorage(template)
+}
+
+// DeleteTemplate deletes a log template by ID
+func (a *App) DeleteTemplate(id string) error {
+	return deleteTemplateFromStorage(id)
+}
+
+// ================================================================================
+// IMPORT/EXPORT API (Enterprise Features)
+// ================================================================================
+
+// ExportConfig exports all profiles and templates to a JSON string
+func (a *App) ExportConfig() (string, error) {
+	return exportConfigFromStorage()
+}
+
+// ImportConfig imports profiles and templates from a JSON string
+func (a *App) ImportConfig(jsonData string, merge bool) error {
+	return importConfigToStorage(jsonData, merge)
 }

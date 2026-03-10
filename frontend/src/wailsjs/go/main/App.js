@@ -6,16 +6,40 @@ export function CheckConnection(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) 
   return window['go']['main']['App']['CheckConnection'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
 }
 
+export function DeleteProfile(arg1) {
+  return window['go']['main']['App']['DeleteProfile'](arg1);
+}
+
+export function DeleteTemplate(arg1) {
+  return window['go']['main']['App']['DeleteTemplate'](arg1);
+}
+
 export function Disconnect() {
   return window['go']['main']['App']['Disconnect']();
+}
+
+export function ExportConfig() {
+  return window['go']['main']['App']['ExportConfig']();
 }
 
 export function GetContinuousStats() {
   return window['go']['main']['App']['GetContinuousStats']();
 }
 
+export function GetProfiles() {
+  return window['go']['main']['App']['GetProfiles']();
+}
+
+export function GetTemplates() {
+  return window['go']['main']['App']['GetTemplates']();
+}
+
 export function GetVersion() {
   return window['go']['main']['App']['GetVersion']();
+}
+
+export function ImportConfig(arg1, arg2) {
+  return window['go']['main']['App']['ImportConfig'](arg1, arg2);
 }
 
 export function IsConnected() {
@@ -32,6 +56,14 @@ export function OpenGitHub() {
 
 export function OpenURL(arg1) {
   return window['go']['main']['App']['OpenURL'](arg1);
+}
+
+export function SaveProfile(arg1) {
+  return window['go']['main']['App']['SaveProfile'](arg1);
+}
+
+export function SaveTemplate(arg1) {
+  return window['go']['main']['App']['SaveTemplate'](arg1);
 }
 
 export function SelectCACertificate() {

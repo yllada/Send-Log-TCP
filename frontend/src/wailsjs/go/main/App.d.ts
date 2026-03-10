@@ -4,11 +4,23 @@ import {main} from '../models';
 
 export function CheckConnection(arg1:string,arg2:string,arg3:string,arg4:boolean,arg5:boolean,arg6:string,arg7:string,arg8:string):Promise<boolean>;
 
+export function DeleteProfile(arg1:string):Promise<void>;
+
+export function DeleteTemplate(arg1:string):Promise<void>;
+
 export function Disconnect():Promise<void>;
+
+export function ExportConfig():Promise<string>;
 
 export function GetContinuousStats():Promise<main.ContinuousStats>;
 
+export function GetProfiles():Promise<Array<main.ConnectionProfile>>;
+
+export function GetTemplates():Promise<Array<main.LogTemplate>>;
+
 export function GetVersion():Promise<string>;
+
+export function ImportConfig(arg1:string,arg2:boolean):Promise<void>;
 
 export function IsConnected():Promise<boolean>;
 
@@ -17,6 +29,10 @@ export function IsContinuousRunning():Promise<boolean>;
 export function OpenGitHub():Promise<void>;
 
 export function OpenURL(arg1:string):Promise<void>;
+
+export function SaveProfile(arg1:main.ConnectionProfile):Promise<main.ConnectionProfile>;
+
+export function SaveTemplate(arg1:main.LogTemplate):Promise<main.LogTemplate>;
 
 export function SelectCACertificate():Promise<string>;
 
