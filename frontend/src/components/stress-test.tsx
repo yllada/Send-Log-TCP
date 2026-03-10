@@ -31,9 +31,11 @@ import {
   StopContinuousSend,
   IsContinuousRunning,
   GetContinuousStats,
+} from "@/wailsjs/go/main/StressTestService";
+import {
   CheckConnection,
   Disconnect,
-} from "@/wailsjs/go/main/App";
+} from "@/wailsjs/go/main/ConnectionService";
 import {
   PlayIcon,
   SquareIcon,

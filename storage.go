@@ -10,9 +10,9 @@ import (
 )
 
 // ================================================================================
-// CONNECTION PROFILES & LOG TEMPLATES STORAGE
-// Enterprise feature: Persistent storage for user configurations
-// Note: Types ConnectionProfile and LogTemplate are defined in app.go
+// STORAGE LAYER - Persistent storage for profiles and templates
+// Enterprise feature: File-based storage with JSON serialization
+// Types ConnectionProfile and LogTemplate are defined in profiles.go and templates.go
 // ================================================================================
 
 // StorageData represents the complete storage file structure

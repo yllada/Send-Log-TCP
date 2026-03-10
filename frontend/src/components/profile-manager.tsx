@@ -25,7 +25,7 @@ import {
   GetProfiles,
   SaveProfile,
   DeleteProfile,
-} from "@/wailsjs/go/main/App";
+} from "@/wailsjs/go/main/ProfileService";
 import {
   FolderOpenIcon,
   SaveIcon,

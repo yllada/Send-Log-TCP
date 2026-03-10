@@ -15,7 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import {
   SelectLogFile,
   ImportLogFile,
-} from "@/wailsjs/go/main/App";
+} from "@/wailsjs/go/main/BatchImportService";
 import {
   FileUpIcon,
   FileText,

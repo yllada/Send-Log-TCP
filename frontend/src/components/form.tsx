@@ -30,12 +30,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useState } from "react";
 import {
   CheckConnection,
-  SendSyslogMessages,
   Disconnect,
   SelectCACertificate,
   SelectClientCertificate,
   SelectClientKey,
-} from "@/wailsjs/go/main/App";
+} from "@/wailsjs/go/main/ConnectionService";
+import { SendSyslogMessages } from "@/wailsjs/go/main/SyslogService";
 import {
   CheckCircleIcon,
   XCircleIcon,

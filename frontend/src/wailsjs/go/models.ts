@@ -54,6 +54,18 @@ export namespace main {
 	        this.updatedAt = source["updatedAt"];
 	    }
 	}
+	export class ConnectionService {
+	
+	
+	    static createFrom(source: any = {}) {
+	        return new ConnectionService(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	
+	    }
+	}
 	export class ContinuousSendConfig {
 	    Address: string;
 	    Port: string;
@@ -158,6 +170,18 @@ export namespace main {
 	        this.updatedAt = source["updatedAt"];
 	    }
 	}
+	export class StressTestService {
+	
+	
+	    static createFrom(source: any = {}) {
+	        return new StressTestService(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	
+	    }
+	}
 	export class SyslogConfig {
 	    Address: string;
 	    Port: string;
@@ -210,6 +234,18 @@ export namespace main {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.sentMessages = source["sentMessages"];
 	        this.errors = source["errors"];
+	    }
+	}
+	export class SyslogService {
+	
+	
+	    static createFrom(source: any = {}) {
+	        return new SyslogService(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	
 	    }
 	}
 

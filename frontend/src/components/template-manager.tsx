@@ -26,7 +26,7 @@ import {
   GetTemplates,
   SaveTemplate,
   DeleteTemplate,
-} from "@/wailsjs/go/main/App";
+} from "@/wailsjs/go/main/TemplateService";
 import {
   FileTextIcon,
   SaveIcon,

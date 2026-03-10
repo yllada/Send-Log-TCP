@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"log"
 
@@ -23,8 +24,17 @@ var assets embed.FS
 var icon []byte
 
 func main() {
-	// Create an instance of the app structure
+	// Create instances of all services (SOLID: Single Responsibility)
 	app := NewApp()
+	connectionService := NewConnectionService()
+	syslogService := NewSyslogService()
+	stressTestService := NewStressTestService()
+	profileService := NewProfileService()
+	templateService := NewTemplateService()
+	batchImportService := NewBatchImportService()
+
+	// Inject service dependencies into App for lifecycle coordination
+	app.SetServices(connectionService, syslogService, stressTestService)
 
 	// Create application with options
 	err := wails.Run(&options.App{
@@ -52,16 +62,32 @@ func main() {
 		SingleInstanceLock: &options.SingleInstanceLock{
 			UniqueId: appUniqueID,
 		},
-		Menu:             nil,
-		Logger:           nil,
-		LogLevel:         logger.DEBUG,
-		OnStartup:        app.startup,
+		Menu:     nil,
+		Logger:   nil,
+		LogLevel: logger.DEBUG,
+		// OnStartup passes context to all services
+		OnStartup: func(ctx context.Context) {
+			app.startup(ctx)
+			connectionService.SetContext(ctx)
+			syslogService.SetContext(ctx)
+			stressTestService.SetContext(ctx)
+			profileService.SetContext(ctx)
+			templateService.SetContext(ctx)
+			batchImportService.SetContext(ctx)
+		},
 		OnDomReady:       app.domReady,
 		OnBeforeClose:    app.beforeClose,
 		OnShutdown:       app.shutdown,
 		WindowStartState: options.Normal,
+		// Bind all services to frontend (SOLID: Interface Segregation)
 		Bind: []interface{}{
 			app,
+			connectionService,
+			syslogService,
+			stressTestService,
+			profileService,
+			templateService,
+			batchImportService,
 		},
 		// Windows platform specific options - Mica/Acrylic effect
 		Windows: &windows.Options{
