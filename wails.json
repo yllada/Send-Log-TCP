@@ -7,6 +7,7 @@
   "frontend:dev:watcher": "pnpm run dev",
   "frontend:dev:serverUrl": "auto",
   "wailsjsdir": "frontend/src",
+  "tags": "webkit2_41",
   "author": {
     "name": "Yadian Llada Lopez",
     "email": "yadian.llada@gmail.com"

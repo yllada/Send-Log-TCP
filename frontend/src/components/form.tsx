@@ -48,8 +48,11 @@ import {
   ShieldCheckIcon,
 } from "lucide-react";
 
+// IP validation regex (IPv4 and IPv6)
+const ipRegex = /^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}|(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}|(?:[a-fA-F0-9]{1,4}:){1,7}:|(?:[a-fA-F0-9]{1,4}:){1,6}:[a-fA-F0-9]{1,4}|::(?:[a-fA-F0-9]{1,4}:){0,5}[a-fA-F0-9]{1,4}|[a-fA-F0-9]{1,4}::(?:[a-fA-F0-9]{1,4}:){0,4}[a-fA-F0-9]{1,4}|localhost)$/;
+
 const FormSchema = z.object({
-  Address: z.string().ip({ message: "Invalid IP address (IPv4 or IPv6)" }),
+  Address: z.string().regex(ipRegex, { message: "Invalid IP address (IPv4 or IPv6)" }),
   Port: z.string({ message: "Port is required" })
     .refine((val: string) => {
       const num = parseInt(val, 10);
@@ -60,8 +63,8 @@ const FormSchema = z.object({
   FramingMethod: z.enum(["octet-counting", "non-transparent"], {
     message: "Please select a framing method",
   }),
-  Facility: z.coerce.number().min(0).max(23, "Facility must be between 0-23"),
-  Severity: z.coerce.number().min(0).max(7, "Severity must be between 0-7"),
+  Facility: z.number().min(0).max(23, "Facility must be between 0-23"),
+  Severity: z.number().min(0).max(7, "Severity must be between 0-7"),
   Hostname: z.string().optional(),
   Appname: z.string().min(1, "Application name is required"),
   UseRFC5424: z.boolean(),
@@ -324,28 +327,29 @@ export function InputForm() {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="w-full max-w-3xl mx-auto space-y-1.5"
+        className="w-full max-w-3xl mx-auto space-y-3"
       >
         {/* Connection Settings Card */}
         <Card>
-          <CardHeader className="pb-1.5 pt-2">
-            <CardTitle className="text-sm flex items-center gap-1.5">
-              <NetworkIcon className="w-3.5 h-3.5" />
+          <CardHeader className="pb-2 pt-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <NetworkIcon className="w-4 h-4" />
               Connection Settings
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-1.5 pb-2">
-            <div className="grid grid-cols-[2fr_1fr_1fr_auto] gap-2 items-end">
+          <CardContent className="space-y-3 pb-3">
+            {/* Row 1: IP, Port, Protocol, Connect Button */}
+            <div className="grid grid-cols-12 gap-3">
               <FormField
                 control={form.control}
                 name="Address"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs">IP Address</FormLabel>
+                  <FormItem className="col-span-5 space-y-1">
+                    <FormLabel className="text-xs font-medium">IP Address</FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="192.168.1.100" 
-                        className="h-8 text-sm" 
+                        className="h-9" 
                         {...field} 
                       />
                     </FormControl>
@@ -358,13 +362,13 @@ export function InputForm() {
                 control={form.control}
                 name="Port"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs">Port</FormLabel>
+                  <FormItem className="col-span-2 space-y-1">
+                    <FormLabel className="text-xs font-medium">Port</FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="514" 
                         type="number" 
-                        className="h-8 text-sm"
+                        className="h-9"
                         {...field} 
                       />
                     </FormControl>
@@ -377,15 +381,15 @@ export function InputForm() {
                 control={form.control}
                 name="Protocol"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs">Protocol</FormLabel>
+                  <FormItem className="col-span-4 space-y-1">
+                    <FormLabel className="text-xs font-medium">Protocol</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger className="h-8 text-sm">
-                          <SelectValue placeholder="Protocol" />
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Select protocol" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -398,24 +402,27 @@ export function InputForm() {
                 )}
               />
 
-              <Button
-                type="button"
-                onClick={handleConnectionToggle}
-                size="icon"
-                className={`h-8 w-8 rounded-full ${
-                  isConnected
-                    ? "bg-red-500 hover:bg-red-600"
-                    : "bg-green-500 hover:bg-green-600"
-                }`}
-              >
-                {isConnected ? (
-                  <XCircleIcon className="w-4 h-4" />
-                ) : (
-                  <CheckCircleIcon className="w-4 h-4" />
-                )}
-              </Button>
+              <div className="col-span-1 flex items-end pb-[3px]">
+                <Button
+                  type="button"
+                  onClick={handleConnectionToggle}
+                  size="icon"
+                  className={`h-9 w-9 rounded-full transition-all ${
+                    isConnected
+                      ? "bg-red-500 hover:bg-red-600 shadow-red-500/25"
+                      : "bg-green-500 hover:bg-green-600 shadow-green-500/25"
+                  } shadow-lg`}
+                >
+                  {isConnected ? (
+                    <XCircleIcon className="w-4 h-4" />
+                  ) : (
+                    <CheckCircleIcon className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
             </div>
 
+            {/* Row 2: TCP Framing */}
             <FormField
               control={form.control}
               name="FramingMethod"
@@ -424,7 +431,7 @@ export function InputForm() {
                 
                 return (
                   <FormItem>
-                    <FormLabel className={`text-xs ${!isTCP ? 'text-muted-foreground' : ''}`}>
+                    <FormLabel className={`text-xs font-medium ${!isTCP ? 'text-muted-foreground' : ''}`}>
                       TCP Framing
                     </FormLabel>
                     <Select
@@ -434,7 +441,7 @@ export function InputForm() {
                     >
                       <FormControl>
                         <SelectTrigger 
-                          className="h-8 text-sm"
+                          className="h-9"
                           disabled={!isTCP}
                         >
                           <SelectValue placeholder="Select method" />
@@ -455,7 +462,8 @@ export function InputForm() {
               }}
             />
 
-            <div className="grid grid-cols-2 gap-2">
+            {/* Row 3: TLS Options */}
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="UseTLS"
@@ -463,14 +471,13 @@ export function InputForm() {
                   const isTCP = form.watch("Protocol") === "tcp";
                   
                   return (
-                    <FormItem className="flex flex-row items-center gap-2 space-y-0 rounded-md border p-2">
+                    <FormItem className="flex flex-row items-center gap-3 space-y-0 rounded-md border border-border/60 p-3 bg-secondary/20">
                       <FormControl>
                         <input
                           type="checkbox"
                           checked={field.value}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             field.onChange(e.target.checked);
-                            // Auto-sugerir puerto 6514 cuando se activa TLS
                             if (e.target.checked && form.getValues("Port") === "514") {
                               form.setValue("Port", "6514");
                             } else if (!e.target.checked && form.getValues("Port") === "6514") {
@@ -478,14 +485,14 @@ export function InputForm() {
                             }
                           }}
                           disabled={!isTCP}
-                          className="h-3.5 w-3.5"
+                          className="h-4 w-4 rounded accent-primary"
                         />
                       </FormControl>
-                      <div className="flex-1 space-y-0">
-                        <FormLabel className={`text-xs font-medium ${!isTCP ? 'text-muted-foreground' : ''}`}>
+                      <div className="flex-1 space-y-0.5">
+                        <FormLabel className={`text-xs font-medium leading-none ${!isTCP ? 'text-muted-foreground' : ''}`}>
                           Use TLS/SSL
                         </FormLabel>
-                        <FormDescription className="text-[10px] leading-tight">
+                        <FormDescription className="text-[10px] text-muted-foreground">
                           Encrypt connection (RFC 5425)
                         </FormDescription>
                       </div>
@@ -502,21 +509,21 @@ export function InputForm() {
                   const isTCP = form.watch("Protocol") === "tcp";
                   
                   return (
-                    <FormItem className="flex flex-row items-center gap-2 space-y-0 rounded-md border p-2">
+                    <FormItem className="flex flex-row items-center gap-3 space-y-0 rounded-md border border-border/60 p-3 bg-secondary/20">
                       <FormControl>
                         <input
                           type="checkbox"
                           checked={field.value}
                           onChange={field.onChange}
                           disabled={!isTCP || !useTLS}
-                          className="h-3.5 w-3.5"
+                          className="h-4 w-4 rounded accent-primary"
                         />
                       </FormControl>
-                      <div className="flex-1 space-y-0">
-                        <FormLabel className={`text-xs font-medium ${!isTCP || !useTLS ? 'text-muted-foreground' : ''}`}>
+                      <div className="flex-1 space-y-0.5">
+                        <FormLabel className={`text-xs font-medium leading-none ${!isTCP || !useTLS ? 'text-muted-foreground' : ''}`}>
                           Verify Certificate
                         </FormLabel>
-                        <FormDescription className="text-[10px] leading-tight">
+                        <FormDescription className="text-[10px] text-muted-foreground">
                           Uncheck for self-signed certs
                         </FormDescription>
                       </div>
@@ -536,32 +543,32 @@ export function InputForm() {
                 const isTCP = form.watch("Protocol") === "tcp";
                 const showSelector = isTCP && useTLS && tlsVerify;
                 
-                if (!showSelector) return null;
+                if (!showSelector) return <></>;
                 
                 return (
                   <FormItem>
-                    <FormLabel className="text-xs">CA Certificate (Optional)</FormLabel>
+                    <FormLabel className="text-xs font-medium">CA Certificate (Optional)</FormLabel>
                     <div className="flex gap-2 items-center">
                       <FormControl>
-                        <div className="flex-1 flex items-center gap-2 h-8 px-3 border rounded-md bg-background text-sm">
+                        <div className="flex-1 flex items-center gap-2 h-9 px-3 border border-border/60 rounded-md bg-secondary/20">
                           {field.value ? (
                             <>
-                              <FileIcon className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                              <span className="truncate flex-1 text-xs">
+                              <FileIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
+                              <span className="truncate flex-1 text-sm">
                                 {field.value.split('/').pop() || field.value.split('\\').pop()}
                               </span>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-5 w-5 p-0 hover:bg-destructive/10"
+                                className="h-6 w-6 p-0 hover:bg-destructive/10"
                                 onClick={handleClearCACert}
                               >
-                                <XIcon className="w-3 h-3 text-destructive" />
+                                <XIcon className="w-3.5 h-3.5 text-destructive" />
                               </Button>
                             </>
                           ) : (
-                            <span className="text-muted-foreground text-xs">
+                            <span className="text-muted-foreground text-sm">
                               Using system CA store
                             </span>
                           )}
@@ -570,11 +577,10 @@ export function InputForm() {
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
-                        className="h-8 px-3"
+                        className="h-9 px-4"
                         onClick={handleSelectCACert}
                       >
-                        <FolderOpenIcon className="w-3.5 h-3.5 mr-1.5" />
+                        <FolderOpenIcon className="w-4 h-4 mr-2" />
                         Browse
                       </Button>
                     </div>
@@ -596,35 +602,35 @@ export function InputForm() {
                 const isTCP = form.watch("Protocol") === "tcp";
                 const showSelector = isTCP && useTLS;
                 
-                if (!showSelector) return null;
+                if (!showSelector) return <></>;
                 
                 return (
                   <FormItem>
-                    <FormLabel className="text-xs flex items-center gap-1">
-                      <ShieldCheckIcon className="w-3 h-3" />
+                    <FormLabel className="text-xs font-medium flex items-center gap-1.5">
+                      <ShieldCheckIcon className="w-3.5 h-3.5" />
                       Client Certificate (mTLS - Optional)
                     </FormLabel>
                     <div className="flex gap-2 items-center">
                       <FormControl>
-                        <div className="flex-1 flex items-center gap-2 h-8 px-3 border rounded-md bg-background text-sm">
+                        <div className="flex-1 flex items-center gap-2 h-9 px-3 border border-border/60 rounded-md bg-secondary/20">
                           {field.value ? (
                             <>
-                              <FileIcon className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                              <span className="truncate flex-1 text-xs">
+                              <FileIcon className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                              <span className="truncate flex-1 text-sm">
                                 {field.value.split('/').pop() || field.value.split('\\').pop()}
                               </span>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-5 w-5 p-0 hover:bg-destructive/10"
+                                className="h-6 w-6 p-0 hover:bg-destructive/10"
                                 onClick={handleClearClientCert}
                               >
-                                <XIcon className="w-3 h-3 text-destructive" />
+                                <XIcon className="w-3.5 h-3.5 text-destructive" />
                               </Button>
                             </>
                           ) : (
-                            <span className="text-muted-foreground text-xs">
+                            <span className="text-muted-foreground text-sm">
                               No client certificate
                             </span>
                           )}
@@ -633,11 +639,10 @@ export function InputForm() {
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
-                        className="h-8 px-3"
+                        className="h-9 px-4"
                         onClick={handleSelectClientCert}
                       >
-                        <FolderOpenIcon className="w-3.5 h-3.5 mr-1.5" />
+                        <FolderOpenIcon className="w-4 h-4 mr-2" />
                         Browse
                       </Button>
                     </div>
@@ -656,35 +661,35 @@ export function InputForm() {
                 const isTCP = form.watch("Protocol") === "tcp";
                 const showSelector = isTCP && useTLS;
                 
-                if (!showSelector) return null;
+                if (!showSelector) return <></>;
                 
                 return (
                   <FormItem>
-                    <FormLabel className="text-xs flex items-center gap-1">
-                      <KeyIcon className="w-3 h-3" />
+                    <FormLabel className="text-xs font-medium flex items-center gap-1.5">
+                      <KeyIcon className="w-3.5 h-3.5" />
                       Client Private Key (mTLS - Optional)
                     </FormLabel>
                     <div className="flex gap-2 items-center">
                       <FormControl>
-                        <div className="flex-1 flex items-center gap-2 h-8 px-3 border rounded-md bg-background text-sm">
+                        <div className="flex-1 flex items-center gap-2 h-9 px-3 border border-border/60 rounded-md bg-secondary/20">
                           {field.value ? (
                             <>
-                              <KeyIcon className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                              <span className="truncate flex-1 text-xs">
+                              <KeyIcon className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                              <span className="truncate flex-1 text-sm">
                                 {field.value.split('/').pop() || field.value.split('\\').pop()}
                               </span>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-5 w-5 p-0 hover:bg-destructive/10"
+                                className="h-6 w-6 p-0 hover:bg-destructive/10"
                                 onClick={handleClearClientKey}
                               >
-                                <XIcon className="w-3 h-3 text-destructive" />
+                                <XIcon className="w-3.5 h-3.5 text-destructive" />
                               </Button>
                             </>
                           ) : (
-                            <span className="text-muted-foreground text-xs">
+                            <span className="text-muted-foreground text-sm">
                               No client key
                             </span>
                           )}
@@ -693,15 +698,14 @@ export function InputForm() {
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
-                        className="h-8 px-3"
+                        className="h-9 px-4"
                         onClick={handleSelectClientKey}
                       >
-                        <FolderOpenIcon className="w-3.5 h-3.5 mr-1.5" />
+                        <FolderOpenIcon className="w-4 h-4 mr-2" />
                         Browse
                       </Button>
                     </div>
-                    <FormDescription className="text-[10px]">
+                    <FormDescription className="text-[10px] text-muted-foreground">
                       Both cert and key required for mutual TLS authentication
                     </FormDescription>
                     <FormMessage className="text-xs" />
@@ -714,28 +718,28 @@ export function InputForm() {
 
         {/* Message Format Card */}
         <Card>
-          <CardHeader className="pb-1.5 pt-2">
-            <CardTitle className="text-sm">Message Configuration</CardTitle>
+          <CardHeader className="pb-2 pt-3">
+            <CardTitle className="text-sm font-semibold">Message Configuration</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-1.5 pb-2">
+          <CardContent className="space-y-3 pb-3">
             <FormField
               control={form.control}
               name="UseRFC5424"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center gap-2 space-y-0 rounded-md border p-2">
+                <FormItem className="flex flex-row items-center gap-3 space-y-0 rounded-md border border-border/60 p-3 bg-secondary/20">
                   <FormControl>
                     <input
                       type="checkbox"
                       checked={field.value}
                       onChange={field.onChange}
-                      className="h-3.5 w-3.5"
+                      className="h-4 w-4 rounded accent-primary"
                     />
                   </FormControl>
-                  <div className="flex-1 space-y-0">
-                    <FormLabel className="text-xs font-medium">
+                  <div className="flex-1 space-y-0.5">
+                    <FormLabel className="text-xs font-medium leading-none">
                       Use RFC 5424 Format
                     </FormLabel>
-                    <FormDescription className="text-[10px] leading-tight">
+                    <FormDescription className="text-[10px] text-muted-foreground">
                       Modern format (checked) or legacy RFC 3164
                     </FormDescription>
                   </div>
@@ -743,28 +747,27 @@ export function InputForm() {
               )}
             />
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="Facility"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs">Facility</FormLabel>
+                    <FormLabel className="text-xs font-medium">Facility</FormLabel>
                     <Select
                       onValueChange={(value: string) => field.onChange(parseInt(value))}
                       defaultValue={field.value?.toString()}
                     >
                       <FormControl>
-                        <SelectTrigger className="h-8 text-sm">
+                        <SelectTrigger className="h-9">
                           <SelectValue placeholder="Select" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="max-h-[180px]">
+                      <SelectContent className="max-h-[200px]">
                         {facilityOptions.map((option) => (
                           <SelectItem
                             key={option.value}
                             value={option.value.toString()}
-                            className="text-xs"
                           >
                             {option.label}
                           </SelectItem>
@@ -781,22 +784,21 @@ export function InputForm() {
                 name="Severity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs">Severity</FormLabel>
+                    <FormLabel className="text-xs font-medium">Severity</FormLabel>
                     <Select
                       onValueChange={(value: string) => field.onChange(parseInt(value))}
                       defaultValue={field.value?.toString()}
                     >
                       <FormControl>
-                        <SelectTrigger className="h-8 text-sm">
+                        <SelectTrigger className="h-9">
                           <SelectValue placeholder="Select" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="max-h-[180px]">
+                      <SelectContent className="max-h-[200px]">
                         {severityOptions.map((option) => (
                           <SelectItem
                             key={option.value}
                             value={option.value.toString()}
-                            className="text-xs"
                           >
                             {option.label}
                           </SelectItem>
@@ -809,17 +811,17 @@ export function InputForm() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="Hostname"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs">Hostname</FormLabel>
+                    <FormLabel className="text-xs font-medium">Hostname</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Optional"
-                        className="h-8 text-sm"
+                        className="h-9"
                         {...field}
                       />
                     </FormControl>
@@ -833,11 +835,11 @@ export function InputForm() {
                 name="Appname"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs">App Name</FormLabel>
+                    <FormLabel className="text-xs font-medium">App Name</FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="sendlog" 
-                        className="h-8 text-sm"
+                        className="h-9"
                         {...field} 
                       />
                     </FormControl>
@@ -852,27 +854,27 @@ export function InputForm() {
         {/* Messages Card */}
         {isConnected ? (
           <Card>
-            <CardHeader className="pb-1.5 pt-2">
-              <CardTitle className="text-sm flex items-center gap-1.5">
-                <SendIcon className="w-3.5 h-3.5" />
+            <CardHeader className="pb-2 pt-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <SendIcon className="w-4 h-4" />
                 Send Messages
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-1.5 pb-2">
+            <CardContent className="space-y-3 pb-3">
               <FormField
                 control={form.control}
                 name="Messages"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs">Log Messages</FormLabel>
+                    <FormLabel className="text-xs font-medium">Log Messages</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Type your messages here, one per line..."
-                        className="resize-none h-[70px] text-sm"
+                        className="resize-none h-[80px]"
                         {...field}
                       />
                     </FormControl>
-                    <FormDescription className="text-[10px]">
+                    <FormDescription className="text-[10px] text-muted-foreground">
                       Enter messages separated by new lines
                     </FormDescription>
                     <FormMessage className="text-xs" />
@@ -880,18 +882,18 @@ export function InputForm() {
                 )}
               />
 
-              <Button type="submit" className="w-full h-8 text-sm" size="sm">
-                <SendIcon className="w-3.5 h-3.5 mr-2" />
+              <Button type="submit" className="w-full h-9">
+                <SendIcon className="w-4 h-4 mr-2" />
                 Send Syslog Messages
               </Button>
             </CardContent>
           </Card>
         ) : (
           <Card>
-            <CardContent className="py-4">
+            <CardContent className="py-6">
               <div className="text-center">
-                <NetworkIcon className="w-8 h-8 mx-auto mb-1.5 text-muted-foreground opacity-50" />
-                <p className="text-xs text-muted-foreground">
+                <NetworkIcon className="w-10 h-10 mx-auto mb-2 text-muted-foreground/50" />
+                <p className="text-sm text-muted-foreground">
                   Connect to a syslog server to send messages
                 </p>
               </div>

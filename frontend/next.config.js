@@ -11,8 +11,7 @@ const nextConfig = {
       unoptimized: true,
     },
     
-    // Deshabilitar características no necesarias en aplicación de escritorio
-    swcMinify: true,
+    // Configuración para Next.js 16+
     reactStrictMode: true,
     
     // Optimización del proceso de compilación

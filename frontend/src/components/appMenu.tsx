@@ -20,8 +20,6 @@ import { ExternalLink, Info, FileText, LogOut, Github, Code2, Layers } from "luc
 import { Quit } from "@/wailsjs/runtime/runtime";
 import { GetVersion, OpenGitHub, OpenURL } from "@/wailsjs/go/main/App";
 
-const GITHUB_URL = "https://github.com/Y3LCorp/Send-Log-TCP";
-
 export function AppMenu() {
   const [showAbout, setShowAbout] = useState(false);
   const [appVersion, setAppVersion] = useState("loading...");

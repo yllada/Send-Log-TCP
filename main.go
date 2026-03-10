@@ -19,6 +19,7 @@ const appUniqueID = "com.sendlog-syslog"
 //go:embed all:frontend/dist
 var assets embed.FS
 
+//go:embed build/appicon.png
 var icon []byte
 
 func main() {
@@ -27,19 +28,19 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:     "SendLog Syslog",
-		Width:     900,
-		Height:    700,
-		MinWidth:  700,
-		MinHeight: 600,
-		//MaxWidth:        1200,
-		//MaxHeight:       900,
-		DisableResize:     false,
+		Title:             "SendLog Syslog",
+		Width:             900,
+		Height:            700,
+		MinWidth:          900, // Fixed size - disables maximize button
+		MinHeight:         700,
+		MaxWidth:          900,
+		MaxHeight:         700,
+		DisableResize:     true, // Prevent resizing completely
 		Fullscreen:        false,
 		Frameless:         false,
 		StartHidden:       false,
 		HideWindowOnClose: false,
-		BackgroundColour:  &options.RGBA{R: 255, G: 255, B: 255, A: 255},
+		BackgroundColour:  &options.RGBA{R: 0, G: 0, B: 0, A: 0}, // Transparent for Mica (Windows only)
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
@@ -62,13 +63,16 @@ func main() {
 		Bind: []interface{}{
 			app,
 		},
-		// Windows platform specific options
+		// Windows platform specific options - Mica/Acrylic effect
 		Windows: &windows.Options{
-			WebviewIsTransparent: false,
-			WindowIsTranslucent:  false,
-			DisableWindowIcon:    false,
-			WebviewUserDataPath:  "",
-			ZoomFactor:           1.0,
+			WebviewIsTransparent:              true,
+			WindowIsTranslucent:               true,
+			DisableWindowIcon:                 false,
+			BackdropType:                      windows.Mica, // Windows 11 Mica effect
+			DisableFramelessWindowDecorations: false,
+			WebviewUserDataPath:               "",
+			ZoomFactor:                        1.0,
+			Theme:                             windows.SystemDefault,
 		},
 		// Mac platform specific options
 		Mac: &mac.Options{
