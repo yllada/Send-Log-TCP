@@ -1,5 +1,32 @@
 # SendLog Syslog Changelog
 
+## [1.6.0] - 2026-03-10
+
+### ✨ New Features
+- feat: implement batch import functionality for log files with support for CSV and JSON formats (7b426bb)
+- feat: add connection profiles and log templates management with API integration (0c8560e)
+- feat: implement TemplateManager component for managing log templates (c8ff62b)
+- feat: add profile manager component for saving and loading connection profiles (b8b50fe)
+- feat: implement continuous/stress test functionality with UI components and backend integration (42d11a8)
+- feat: add /docs to .gitignore to exclude documentation files from version control (57b70ea)
+
+### ♻️ Refactoring
+- refactor(frontend): split form.tsx into modular components following SOLID principles (cb3fa4d)
+
+### 📚 Documentation
+- docs: update CHANGELOG for v1.5.0 (5829743)
+
+### 🔧 Maintenance
+- chore: update Go version to 1.25 in release workflow (97e6a04)
+- chore(ci): bump actions/setup-node from 4 to 6 (2d08759)
+- chore(ci): bump actions/setup-go from 5 to 6 (21b9176)
+- chore(ci): bump actions/download-artifact from 4 to 8 (f96fbc8)
+
+### 📝 Other Changes
+- Refactor application structure to implement service-oriented architecture (f6b440b)
+
+
+
 ## [1.5.0] - 2026-03-10
 
 ### ✨ New Features
