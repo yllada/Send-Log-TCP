@@ -1,0 +1,148 @@
+# =============================================================================
+# CI Pipeline - Tests, Linting, and Code Quality
+# =============================================================================
+# This workflow runs on every push and pull request to ensure code quality.
+#
+# Jobs:
+#   - test: Run Go unit tests with coverage
+#   - lint: Run golangci-lint for code quality
+#   - frontend: Run frontend type checking
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: '1.25'
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10'
+
+jobs:
+  # ===========================================================================
+  # Job: Go Tests
+  # ===========================================================================
+  test:
+    name: Go Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run tests
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Check coverage
+        run: |
+          go tool cover -func=coverage.out
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Total coverage: ${COVERAGE}%"
+          
+          # Optional: Fail if coverage is below threshold
+          # if (( $(echo "$COVERAGE < 50" | bc -l) )); then
+          #   echo "Coverage is below 50%"
+          #   exit 1
+          # fi
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.out
+          flags: unittests
+          fail_ci_if_error: false
+        continue-on-error: true
+
+  # ===========================================================================
+  # Job: Go Linting
+  # ===========================================================================
+  lint:
+    name: Go Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+
+  # ===========================================================================
+  # Job: Frontend Type Checking
+  # ===========================================================================
+  frontend:
+    name: Frontend Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        working-directory: frontend
+        run: pnpm exec tsc --noEmit
+
+  # ===========================================================================
+  # Job: Build Verification (optional - only on PRs)
+  # ===========================================================================
+  build-check:
+    name: Build Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Verify Go modules
+        run: |
+          go mod verify
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+      - name: Build Go (without CGO for quick check)
+        run: CGO_ENABLED=0 go build -o /dev/null ./...

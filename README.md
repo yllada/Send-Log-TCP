@@ -2,6 +2,7 @@
 
 <div align="center">
 
+[![CI](https://github.com/Y3LCorp/Send-Log-TCP/actions/workflows/ci.yml/badge.svg)](https://github.com/Y3LCorp/Send-Log-TCP/actions/workflows/ci.yml)
 [![Release](https://github.com/Y3LCorp/Send-Log-TCP/actions/workflows/release.yml/badge.svg)](https://github.com/Y3LCorp/Send-Log-TCP/actions/workflows/release.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![GitHub release](https://img.shields.io/github/v/release/Y3LCorp/Send-Log-TCP)](https://github.com/Y3LCorp/Send-Log-TCP/releases/latest)
@@ -27,6 +28,7 @@ Built with [Wails v2](https://wails.io/) (Go + Web Technologies) | RFC 5424 & RF
 - [Development](#-development)
 - [Documentation](#-documentation)
 - [Contributing](#-contributing)
+- [Security](#-security)
 - [License](#-license)
 
 ---
@@ -314,7 +316,20 @@ Found a bug or have a feature request? [Open an issue](https://github.com/Y3LCor
 
 ---
 
-## 📄 License
+## � Security
+
+Security is a top priority for SendLog Syslog. Key security features:
+
+- **TLS 1.2/1.3** encryption support
+- **mTLS** (Mutual TLS) for client authentication
+- **Certificate verification** enabled by default
+- **No telemetry** or data collection
+
+For reporting security vulnerabilities, please see our [Security Policy](SECURITY.md).
+
+---
+
+## �📄 License
 
 This project is licensed under the **Apache License 2.0** - see the [LICENSE](LICENSE) file for details.
 
