@@ -1,4 +1,4 @@
-package main
+package framing
 
 import (
 	"bytes"
@@ -194,3 +194,18 @@ func IsValidFramingMethod(method FramingMethod) bool {
 func RecommendedFramingMethod() FramingMethod {
 	return OctetCounting
 }
+
+// ================================================================================
+// SHARED FRAMING TYPES
+// ================================================================================
+
+// FramingMethod specifies the framing method for TCP per RFC 6587
+type FramingMethod string
+
+const (
+	// OctetCounting implements octet counting method (RFC 6587 Section 3.4.1)
+	OctetCounting FramingMethod = "octet-counting"
+
+	// NonTransparent implements non-transparent framing (RFC 6587 Section 3.4.2)
+	NonTransparent FramingMethod = "non-transparent"
+)

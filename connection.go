@@ -1,29 +1,23 @@
+// Package main implements the Send-Log-TCP desktop application: a Wails-based
+// GUI for composing and sending syslog messages over TCP, UDP and TLS.
 package main
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"sync"
-	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
-)
 
-// Connection timeouts according to best practices
-const (
-	connectionTimeout = 10 * time.Second
-	writeTimeout      = 30 * time.Second
-	readTimeout       = 30 * time.Second
+	"Sendlog-Syslog/internal/syslog"
 )
 
 // ================================================================================
-// CONNECTION SERVICE - Handles network connections (TCP, UDP, TLS)
-// Follows Single Responsibility Principle: manages only connection state
+// CONNECTION SERVICE - GUI-facing connection manager
+// The dialing logic itself lives in internal/syslog; this service only keeps
+// the Wails runtime context and the active connection for the GUI.
 // ================================================================================
 
 // ConnectionService manages network connections to syslog servers
@@ -63,7 +57,16 @@ func (c *ConnectionService) GetConnection() net.Conn {
 func (c *ConnectionService) CheckConnection(address string, port string, protocol string, useTLS bool, tlsVerify bool, caCertPath string, clientCertPath string, clientKeyPath string) (bool, error) {
 	fullAddress := net.JoinHostPort(address, port)
 
-	conn, err := dialConnection(address, port, protocol, useTLS, tlsVerify, caCertPath, clientCertPath, clientKeyPath)
+	conn, err := syslog.Dial(syslog.SyslogConfig{
+		Address:        address,
+		Port:           port,
+		Protocol:       protocol,
+		UseTLS:         useTLS,
+		TLSVerify:      tlsVerify,
+		CACertPath:     caCertPath,
+		ClientCertPath: clientCertPath,
+		ClientKeyPath:  clientKeyPath,
+	})
 	if err != nil {
 		runtime.LogError(c.ctx, fmt.Sprintf("Error connecting to %s: %v", fullAddress, err))
 		return false, err
@@ -77,7 +80,7 @@ func (c *ConnectionService) CheckConnection(address string, port string, protoco
 
 	protocolInfo := protocol
 	if useTLS {
-		protocolInfo = fmt.Sprintf("%s+TLS", protocol)
+		protocolInfo = fmt.Sprintf("%s+TLS", protocolInfo)
 	}
 	runtime.LogInfo(c.ctx, fmt.Sprintf("Connected to %s via %s", fullAddress, protocolInfo))
 	return true, nil
@@ -141,10 +144,10 @@ func (c *ConnectionService) SelectClientCertificate() (string, error) {
 	return filePath, nil
 }
 
-// SelectClientKey opens a dialog to select a client private key (mTLS)
+// SelectClientKey opens a dialog to select a client private key
 func (c *ConnectionService) SelectClientKey() (string, error) {
 	filePath, err := runtime.OpenFileDialog(c.ctx, runtime.OpenDialogOptions{
-		Title: "Select Client Private Key",
+		Title: "Select Client Key",
 		Filters: []runtime.FileFilter{
 			{
 				DisplayName: "Key Files (*.pem, *.key)",
@@ -160,129 +163,4 @@ func (c *ConnectionService) SelectClientKey() (string, error) {
 		return "", fmt.Errorf("failed to open file dialog: %w", err)
 	}
 	return filePath, nil
-}
-
-// ================================================================================
-// INTERNAL CONNECTION HELPERS (not exported to frontend)
-// ================================================================================
-
-// dialTLS establishes a TLS connection to the remote server
-func dialTLS(address, port string, tlsVerify bool, caCertPath, clientCertPath, clientKeyPath string) (net.Conn, error) {
-	fullAddress := net.JoinHostPort(address, port)
-
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: !tlsVerify,
-		MinVersion:         tls.VersionTLS12,
-		MaxVersion:         tls.VersionTLS13,
-	}
-
-	if tlsVerify {
-		tlsConfig.ServerName = address
-
-		if caCertPath != "" {
-			rootCAs, err := loadCACertificate(caCertPath)
-			if err != nil {
-				return nil, fmt.Errorf("failed to load CA certificate: %w", err)
-			}
-			tlsConfig.RootCAs = rootCAs
-			log.Printf("Using custom CA certificate: %s", caCertPath)
-		}
-	}
-
-	if clientCertPath != "" && clientKeyPath != "" {
-		clientCert, err := loadClientCertificate(clientCertPath, clientKeyPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load client certificate: %w", err)
-		}
-		tlsConfig.Certificates = []tls.Certificate{clientCert}
-		log.Printf("Using client certificate for mTLS: %s", clientCertPath)
-	} else if clientCertPath != "" || clientKeyPath != "" {
-		return nil, fmt.Errorf("both client certificate and key are required for mTLS")
-	}
-
-	dialer := &net.Dialer{
-		Timeout: connectionTimeout,
-	}
-
-	tlsConn, err := tls.DialWithDialer(dialer, "tcp", fullAddress, tlsConfig)
-	if err != nil {
-		return nil, fmt.Errorf("TLS connection failed: %w", err)
-	}
-
-	if err := tlsConn.Handshake(); err != nil {
-		_ = tlsConn.Close()
-		return nil, fmt.Errorf("TLS handshake failed: %w", err)
-	}
-
-	state := tlsConn.ConnectionState()
-	log.Printf("TLS connection established: version=%s, cipher=%s, server=%s",
-		tlsVersionName(state.Version),
-		tls.CipherSuiteName(state.CipherSuite),
-		state.ServerName,
-	)
-
-	return tlsConn, nil
-}
-
-// tlsVersionName converts TLS version code to readable name
-func tlsVersionName(version uint16) string {
-	switch version {
-	case tls.VersionTLS10:
-		return "TLS 1.0"
-	case tls.VersionTLS11:
-		return "TLS 1.1"
-	case tls.VersionTLS12:
-		return "TLS 1.2"
-	case tls.VersionTLS13:
-		return "TLS 1.3"
-	default:
-		return fmt.Sprintf("Unknown (0x%04X)", version)
-	}
-}
-
-// loadCACertificate loads a CA certificate from PEM file
-func loadCACertificate(certPath string) (*x509.CertPool, error) {
-	caCert, err := os.ReadFile(certPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read CA certificate file: %w", err)
-	}
-
-	rootCAs := x509.NewCertPool()
-	if ok := rootCAs.AppendCertsFromPEM(caCert); !ok {
-		return nil, fmt.Errorf("failed to parse CA certificate (invalid PEM format)")
-	}
-
-	return rootCAs, nil
-}
-
-// loadClientCertificate loads client certificate and private key for mTLS
-func loadClientCertificate(certPath, keyPath string) (tls.Certificate, error) {
-	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
-	if err != nil {
-		return tls.Certificate{}, fmt.Errorf("failed to load client certificate/key pair: %w", err)
-	}
-	return cert, nil
-}
-
-// dialConnection establishes a connection based on protocol configuration
-func dialConnection(address, port, protocol string, useTLS, tlsVerify bool, caCertPath, clientCertPath, clientKeyPath string) (net.Conn, error) {
-	if useTLS && protocol == "udp" {
-		return nil, fmt.Errorf("TLS is not supported over UDP protocol")
-	}
-
-	if protocol == "tcp" && useTLS {
-		return dialTLS(address, port, tlsVerify, caCertPath, clientCertPath, clientKeyPath)
-	}
-
-	fullAddress := net.JoinHostPort(address, port)
-	dialer := &net.Dialer{
-		Timeout: connectionTimeout,
-	}
-
-	conn, err := dialer.Dial(protocol, fullAddress)
-	if err != nil {
-		return nil, fmt.Errorf("connection failed: %w", err)
-	}
-
-	return conn, nil
 }

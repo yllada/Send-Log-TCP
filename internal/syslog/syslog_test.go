@@ -1,4 +1,4 @@
-package main
+package syslog
 
 import (
 	"regexp"
@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"unicode"
+
+	"Sendlog-Syslog/internal/framing"
 )
 
 // =============================================================================
@@ -39,9 +41,9 @@ func TestBuildSyslogMessage_RawPRIPrependsPriorityOnly(t *testing.T) {
 		MessageFormat: MessageFormatRawPRI,
 	}
 
-	got, err := buildSyslogMessage(config, esetMessage)
+	got, err := BuildMessage(config, esetMessage)
 	if err != nil {
-		t.Fatalf("buildSyslogMessage returned unexpected error: %v", err)
+		t.Fatalf("BuildMessage returned unexpected error: %v", err)
 	}
 	if got != want {
 		t.Errorf("raw-pri output mismatch\n got: %q\nwant: %q", got, want)
@@ -55,9 +57,9 @@ func TestBuildSyslogMessage_RawPRINoSpaceAfterPriority(t *testing.T) {
 		MessageFormat: MessageFormatRawPRI,
 	}
 
-	got, err := buildSyslogMessage(config, "payload")
+	got, err := BuildMessage(config, "payload")
 	if err != nil {
-		t.Fatalf("buildSyslogMessage returned unexpected error: %v", err)
+		t.Fatalf("BuildMessage returned unexpected error: %v", err)
 	}
 
 	const prefix = "<134>"
@@ -113,9 +115,9 @@ func TestBuildSyslogMessage_RawPRIPreservesBytesVerbatim(t *testing.T) {
 				MessageFormat: MessageFormatRawPRI,
 			}
 
-			got, err := buildSyslogMessage(config, tt.message)
+			got, err := BuildMessage(config, tt.message)
 			if err != nil {
-				t.Fatalf("buildSyslogMessage returned unexpected error: %v", err)
+				t.Fatalf("BuildMessage returned unexpected error: %v", err)
 			}
 
 			want := "<12>" + tt.message
@@ -140,9 +142,9 @@ func TestBuildSyslogMessage_RawPRIIgnoresHostnameAndAppname(t *testing.T) {
 		MessageFormat: MessageFormatRawPRI,
 	}
 
-	got, err := buildSyslogMessage(config, message)
+	got, err := BuildMessage(config, message)
 	if err != nil {
-		t.Fatalf("buildSyslogMessage returned unexpected error: %v", err)
+		t.Fatalf("BuildMessage returned unexpected error: %v", err)
 	}
 
 	if want := "<12>" + message; got != want {
@@ -171,8 +173,8 @@ func TestBuildRawPRIMessage_PriorityAndMessageOnly(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := buildRawPRIMessage(tt.priority, tt.message); got != tt.want {
-				t.Errorf("buildRawPRIMessage() = %q, want %q", got, tt.want)
+			if got := BuildRawPRI(tt.priority, tt.message); got != tt.want {
+				t.Errorf("BuildRawPRI() = %q, want %q", got, tt.want)
 			}
 		})
 	}
@@ -226,7 +228,7 @@ func TestBuildSyslogMessage_PriorityBoundary(t *testing.T) {
 				MessageFormat: MessageFormatRawPRI,
 			}
 
-			got, err := buildSyslogMessage(config, "payload")
+			got, err := BuildMessage(config, "payload")
 
 			if tt.wantErr {
 				if err == nil {
@@ -311,8 +313,8 @@ func TestResolveMessageFormat_ExplicitValueWins(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := resolveMessageFormat(tt.format, tt.useRFC5424); got != tt.want {
-				t.Errorf("resolveMessageFormat(%q, %v) = %q, want %q", tt.format, tt.useRFC5424, got, tt.want)
+			if got := ResolveMessageFormat(tt.format, tt.useRFC5424); got != tt.want {
+				t.Errorf("ResolveMessageFormat(%q, %v) = %q, want %q", tt.format, tt.useRFC5424, got, tt.want)
 			}
 		})
 	}
@@ -348,7 +350,7 @@ func TestBuildSyslogMessage_LegacyUseRFC5424FallbackSelectsFormat(t *testing.T) 
 				// stored before the MessageFormat field existed.
 			}
 
-			got, err := buildSyslogMessage(config, "hello world")
+			got, err := BuildMessage(config, "hello world")
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -380,7 +382,7 @@ func TestBuildSyslogMessage_RFC5424StructureUnchanged(t *testing.T) {
 		MessageFormat: MessageFormatRFC5424,
 	}
 
-	got, err := buildSyslogMessage(config, "hello world")
+	got, err := BuildMessage(config, "hello world")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -419,7 +421,7 @@ func TestBuildSyslogMessage_RFC5424DefaultsMissingFieldsToNil(t *testing.T) {
 		MessageFormat: MessageFormatRFC5424,
 	}
 
-	got, err := buildSyslogMessage(config, "hello")
+	got, err := BuildMessage(config, "hello")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -445,7 +447,7 @@ func TestBuildSyslogMessage_RFC3164StructureUnchanged(t *testing.T) {
 		MessageFormat: MessageFormatRFC3164,
 	}
 
-	got, err := buildSyslogMessage(config, "hello world")
+	got, err := BuildMessage(config, "hello world")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -486,7 +488,7 @@ func TestValidateConfig_MessageFormat(t *testing.T) {
 				MessageFormat: tt.format,
 			}
 
-			err := validateConfig(&config)
+			err := ValidateConfig(&config)
 
 			if !tt.wantErr {
 				if err != nil {
@@ -516,12 +518,12 @@ func TestValidateConfig_PreservesExistingBehaviour(t *testing.T) {
 		Protocol: "tcp",
 	}
 
-	if err := validateConfig(&config); err != nil {
+	if err := ValidateConfig(&config); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if config.FramingMethod != RecommendedFramingMethod() {
-		t.Errorf("FramingMethod = %q, want %q", config.FramingMethod, RecommendedFramingMethod())
+	if config.FramingMethod != framing.RecommendedFramingMethod() {
+		t.Errorf("FramingMethod = %q, want %q", config.FramingMethod, framing.RecommendedFramingMethod())
 	}
 	if config.Appname != "sendlog" {
 		t.Errorf("Appname = %q, want %q", config.Appname, "sendlog")
@@ -530,7 +532,7 @@ func TestValidateConfig_PreservesExistingBehaviour(t *testing.T) {
 		t.Error("Hostname should be defaulted, got empty string")
 	}
 	if config.MessageFormat != "" {
-		t.Errorf("validateConfig must not invent a MessageFormat, got %q", config.MessageFormat)
+		t.Errorf("ValidateConfig must not invent a MessageFormat, got %q", config.MessageFormat)
 	}
 }
 
@@ -548,12 +550,12 @@ func TestFrame_OctetCountMatchesRawPRIByteLength(t *testing.T) {
 		MessageFormat: MessageFormatRawPRI,
 	}
 
-	syslogMsg, err := buildSyslogMessage(config, esetMessage)
+	syslogMsg, err := BuildMessage(config, esetMessage)
 	if err != nil {
-		t.Fatalf("buildSyslogMessage returned unexpected error: %v", err)
+		t.Fatalf("BuildMessage returned unexpected error: %v", err)
 	}
 
-	framer := NewFramer(FramingConfig{Method: OctetCounting, ValidateUTF8: true})
+	framer := framing.NewFramer(framing.FramingConfig{Method: framing.OctetCounting, ValidateUTF8: true})
 	framed, err := framer.Frame(syslogMsg)
 	if err != nil {
 		t.Fatalf("Frame returned unexpected error: %v", err)
