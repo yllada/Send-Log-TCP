@@ -348,12 +348,54 @@ jobs:
           if-no-files-found: warn
 
   # ===========================================================================
+  # Job: CLI (Linux)
+  # ===========================================================================
+  # The CLI has no Wails/webview or frontend dependency, so it builds in
+  # isolation with CGO disabled.
+  cli:
+    name: Build sendlog-cli (linux/amd64)
+    runs-on: ubuntu-latest
+    needs: prepare
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build CLI
+        run: |
+          mkdir -p build/bin
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+            -o build/bin/Sendlog-Syslog-cli-linux-amd64 \
+            -ldflags "-s -w -X main.version=${{ needs.prepare.outputs.version }}" \
+            ./cmd/sendlog-cli
+          ./build/bin/Sendlog-Syslog-cli-linux-amd64 version
+
+      - name: Generate checksum
+        run: sha256sum build/bin/Sendlog-Syslog-cli-linux-amd64 > build/bin/Sendlog-Syslog-cli-linux-amd64.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CLI
+          path: |
+            build/bin/Sendlog-Syslog-cli-linux-amd64
+            build/bin/Sendlog-Syslog-cli-linux-amd64.sha256
+          retention-days: 5
+          if-no-files-found: error
+
+  # ===========================================================================
   # Job: Crear Release de GitHub
   # ===========================================================================
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [prepare, build]
+    needs: [prepare, build, cli]
     
     steps:
       - name: Checkout code
@@ -372,7 +414,7 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir -p release
-          find ./artifacts -type f \( -name "*.exe" -o -name "Sendlog-Syslog-linux-*" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.zip" -o -name "*.sha256" \) -exec cp {} release/ \;
+          find ./artifacts -type f \( -name "*.exe" -o -name "Sendlog-Syslog-linux-*" -o -name "Sendlog-Syslog-cli-*" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.zip" -o -name "*.sha256" \) -exec cp {} release/ \;
           echo "📦 Release files:"
           ls -la release/
 
