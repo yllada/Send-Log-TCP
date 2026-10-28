@@ -23,6 +23,7 @@ Built with [Wails v2](https://wails.io/) (Go + Web Technologies) | RFC 5424 & RF
 
 - [Features](#-features)
 - [Download](#-download)
+- [CLI (Linux)](#-cli-linux)
 - [Quick Start](#-quick-start)
 - [Usage](#-usage)
 - [Development](#-development)
@@ -113,6 +114,57 @@ chmod +x Sendlog-Syslog-linux-amd64
 ./Sendlog-Syslog-linux-amd64
 ```
 </details>
+
+---
+
+## 💻 CLI (Linux)
+
+A command-line client for Linux shares the exact core of the desktop app (same
+message formats, RFC 6587 framing, TLS/mTLS, stress engine and the same
+`~/.config/SendLog-Syslog/sendlog-config.json` storage — profiles created in
+the GUI are available in the CLI and vice versa). It is a single static
+binary with no dependencies: download `Sendlog-Syslog-cli-linux-amd64` from
+[Releases](https://github.com/Y3LCorp/Send-Log-TCP/releases/latest) and run it.
+
+Build from source:
+
+```bash
+go build -ldflags "-s -w -X main.version=$(git describe --tags)" -o sendlog-cli ./cmd/sendlog-cli
+```
+
+### Examples
+
+```bash
+# Send one message over TCP (octet-counting framing, RFC 5424)
+./sendlog-cli send -a 10.0.0.5 -p 514 -t tcp -m "deploy finished"
+
+# Send messages from a log file (.json / .csv / .txt)
+./sendlog-cli send -a 10.0.0.5 -p 514 -t udp -f events.txt
+
+# Replay raw vendor lines (only <PRI> is prepended)
+./sendlog-cli send -a 10.0.0.5 -p 6514 -t tcp --tls --verify \
+  --ca /etc/ssl/certs/ca.pem --format raw-pri -f capture.txt
+
+# mTLS (RFC 5425) with client certificate
+./sendlog-cli send -a 10.0.0.5 -p 6514 -t tcp --tls \
+  --cert client.pem --key client.key -m "secret log"
+
+# Test that a connection works
+./sendlog-cli connect -a 10.0.0.5 -p 514 -t tcp --json
+
+# Stress test: 50 msg/s for 60 seconds (Ctrl+C stops early)
+./sendlog-cli stress -a 10.0.0.5 -p 514 -t tcp -m "load test" --rate 50 --duration 60
+
+# Manage saved profiles / templates (shared with the GUI)
+./sendlog-cli profile add --name prod -a 10.0.0.5 -p 6514 -t tcp --tls
+./sendlog-cli profile list
+./sendlog-cli template list
+./sendlog-cli export
+./sendlog-cli import -f backup.json --merge
+```
+
+Progress and stats go to stderr; with `--json`, a single machine-readable
+line goes to stdout. Exit code is `0` on success, `1` on errors.
 
 ---
 
