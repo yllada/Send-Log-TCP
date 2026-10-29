@@ -71,18 +71,18 @@ func ResolveMessageFormat(format MessageFormat, useRFC5424 bool) MessageFormat {
 	return MessageFormatRFC3164
 }
 
-// SyslogConfig holds the configuration for sending syslog messages
-type SyslogConfig struct {
-	Address       string          `json:"Address"`
-	Port          string          `json:"Port"`
-	Protocol      string          `json:"Protocol"`
-	Messages      []string        `json:"Messages"`
-	FramingMethod framing.FramingMethod `json:"FramingMethod"`
-	Facility      uint8           `json:"Facility"`
-	Severity      uint8           `json:"Severity"`
-	Hostname      string          `json:"Hostname"`
-	Appname       string          `json:"Appname"`
-	MessageFormat MessageFormat   `json:"MessageFormat"`
+// Config holds the configuration for sending syslog messages
+type Config struct {
+	Address       string         `json:"Address"`
+	Port          string         `json:"Port"`
+	Protocol      string         `json:"Protocol"`
+	Messages      []string       `json:"Messages"`
+	Method        framing.Method `json:"FramingMethod"`
+	Facility      uint8          `json:"Facility"`
+	Severity      uint8          `json:"Severity"`
+	Hostname      string         `json:"Hostname"`
+	Appname       string         `json:"Appname"`
+	MessageFormat MessageFormat  `json:"MessageFormat"`
 	// UseRFC5424 is the legacy format switch. It is kept because stored
 	// templates and profiles persist it; MessageFormat takes precedence when set.
 	UseRFC5424     bool   `json:"UseRFC5424"`
@@ -93,8 +93,8 @@ type SyslogConfig struct {
 	ClientKeyPath  string `json:"ClientKeyPath"`
 }
 
-// SyslogResponse contains the result of send operations
-type SyslogResponse struct {
+// Response contains the result of send operations
+type Response struct {
 	SentMessages []string `json:"sentMessages"`
 	Errors       []string `json:"errors"`
 }
@@ -105,8 +105,8 @@ type SyslogResponse struct {
 type SendFunc func(current, total int, percent float64)
 
 // SendSyslogMessages sends syslog messages and returns the result.
-func SendSyslogMessages(config SyslogConfig, onProgress SendFunc) SyslogResponse {
-	response := SyslogResponse{
+func SendSyslogMessages(config Config, onProgress SendFunc) Response {
+	response := Response{
 		SentMessages: []string{},
 		Errors:       []string{},
 	}
@@ -158,14 +158,14 @@ func CheckConnection(address string, port string, protocol string, useTLS bool, 
 }
 
 // sendTCPMessages sends TCP messages with proper framing per RFC 6587
-func sendTCPMessages(conn net.Conn, config SyslogConfig, onProgress SendFunc) SyslogResponse {
-	response := SyslogResponse{
+func sendTCPMessages(conn net.Conn, config Config, onProgress SendFunc) Response {
+	response := Response{
 		SentMessages: []string{},
 		Errors:       []string{},
 	}
 
-	framer := framing.NewFramer(framing.FramingConfig{
-		Method:           config.FramingMethod,
+	framer := framing.NewFramer(framing.Config{
+		Method:           config.Method,
 		ValidateUTF8:     true,
 		MaxMessageLength: 0,
 	})
@@ -204,8 +204,8 @@ func sendTCPMessages(conn net.Conn, config SyslogConfig, onProgress SendFunc) Sy
 }
 
 // sendUDPMessages sends UDP messages (one message per packet)
-func sendUDPMessages(conn net.Conn, config SyslogConfig, onProgress SendFunc) SyslogResponse {
-	response := SyslogResponse{
+func sendUDPMessages(conn net.Conn, config Config, onProgress SendFunc) Response {
+	response := Response{
 		SentMessages: []string{},
 		Errors:       []string{},
 	}
@@ -242,7 +242,7 @@ func sendUDPMessages(conn net.Conn, config SyslogConfig, onProgress SendFunc) Sy
 
 // BuildMessage constructs a syslog message per RFC 5424, RFC 3164 or the
 // raw-pri passthrough mode.
-func BuildMessage(config SyslogConfig, message string) (string, error) {
+func BuildMessage(config Config, message string) (string, error) {
 	priority := config.Facility*8 + config.Severity
 
 	if priority > 191 {
@@ -259,11 +259,13 @@ func BuildMessage(config SyslogConfig, message string) (string, error) {
 	}
 }
 
+// BuildRawPRI emits a raw-pri message: the PRI value followed by the message
+// verbatim, with no RFC 5424 header around it.
 func BuildRawPRI(priority uint8, message string) string {
 	return fmt.Sprintf("<%d>%s", priority, message)
 }
 
-func buildRFC5424Message(priority uint8, config SyslogConfig, message string) string {
+func buildRFC5424Message(priority uint8, config Config, message string) string {
 	timestamp := time.Now().UTC().Format("2006-01-02T15:04:05.000Z07:00")
 
 	hostname := config.Hostname
@@ -280,7 +282,7 @@ func buildRFC5424Message(priority uint8, config SyslogConfig, message string) st
 		priority, timestamp, hostname, appname, message)
 }
 
-func buildRFC3164Message(priority uint8, config SyslogConfig, message string) string {
+func buildRFC3164Message(priority uint8, config Config, message string) string {
 	timestamp := time.Now().Format("Jan  2 15:04:05")
 
 	hostname := config.Hostname
@@ -317,7 +319,7 @@ func WriteAll(w io.Writer, data []byte) error {
 }
 
 // ValidateConfig validates and normalizes configuration
-func ValidateConfig(config *SyslogConfig) error {
+func ValidateConfig(config *Config) error {
 	if config.Address == "" {
 		return fmt.Errorf("address is required")
 	}
@@ -332,14 +334,14 @@ func ValidateConfig(config *SyslogConfig) error {
 		return fmt.Errorf("severity must be 0-7 (got %d)", config.Severity)
 	}
 
-	if config.FramingMethod == "" {
+	if config.Method == "" {
 		if config.Protocol == "tcp" {
-			config.FramingMethod = framing.RecommendedFramingMethod()
+			config.Method = framing.RecommendedFramingMethod()
 		}
 	}
 
-	if config.FramingMethod != "" && !framing.IsValidFramingMethod(config.FramingMethod) {
-		return fmt.Errorf("invalid framing method '%s'", config.FramingMethod)
+	if config.Method != "" && !framing.IsValidFramingMethod(config.Method) {
+		return fmt.Errorf("invalid framing method '%s'", config.Method)
 	}
 
 	if config.MessageFormat != "" && !IsValidMessageFormat(config.MessageFormat) {
@@ -367,7 +369,7 @@ func ValidateConfig(config *SyslogConfig) error {
 // DIALING
 // ================================================================================
 
-// DialConfig is the subset of SyslogConfig needed to establish a connection
+// DialConfig is the subset of Config needed to establish a connection
 type DialConfig struct {
 	Address        string
 	Port           string
@@ -380,7 +382,7 @@ type DialConfig struct {
 }
 
 // Dial opens a connection based on protocol configuration
-func Dial(config SyslogConfig) (net.Conn, error) {
+func Dial(config Config) (net.Conn, error) {
 	return DialConfig{
 		Address:        config.Address,
 		Port:           config.Port,

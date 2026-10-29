@@ -23,8 +23,8 @@ type ContinuousStats = stress.ContinuousStats
 
 // StressTestService handles continuous/stress test operations for the GUI
 type StressTestService struct {
-	ctx     context.Context
-	engine  *stress.Engine
+	ctx    context.Context
+	engine *stress.Engine
 }
 
 // NewStressTestService creates a new StressTestService instance

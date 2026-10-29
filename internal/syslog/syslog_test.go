@@ -35,7 +35,7 @@ func TestBuildSyslogMessage_RawPRIPrependsPriorityOnly(t *testing.T) {
 	const esetMessage = `1 2022-04-11T10:41:05.300Z esmc ERAServer 11804 - - {"event_type":"FirewallAggregated_Event"}`
 	const want = `<12>1 2022-04-11T10:41:05.300Z esmc ERAServer 11804 - - {"event_type":"FirewallAggregated_Event"}`
 
-	config := SyslogConfig{
+	config := Config{
 		Facility:      1, // user
 		Severity:      4, // warning
 		MessageFormat: MessageFormatRawPRI,
@@ -51,7 +51,7 @@ func TestBuildSyslogMessage_RawPRIPrependsPriorityOnly(t *testing.T) {
 }
 
 func TestBuildSyslogMessage_RawPRINoSpaceAfterPriority(t *testing.T) {
-	config := SyslogConfig{
+	config := Config{
 		Facility:      16,
 		Severity:      6,
 		MessageFormat: MessageFormatRawPRI,
@@ -109,7 +109,7 @@ func TestBuildSyslogMessage_RawPRIPreservesBytesVerbatim(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := SyslogConfig{
+			config := Config{
 				Facility:      1,
 				Severity:      4,
 				MessageFormat: MessageFormatRawPRI,
@@ -134,7 +134,7 @@ func TestBuildSyslogMessage_RawPRIPreservesBytesVerbatim(t *testing.T) {
 func TestBuildSyslogMessage_RawPRIIgnoresHostnameAndAppname(t *testing.T) {
 	const message = `1 2022-04-11T10:41:05.300Z esmc ERAServer 11804 - - {"k":"v"}`
 
-	config := SyslogConfig{
+	config := Config{
 		Facility:      1,
 		Severity:      4,
 		Hostname:      "JUNK-HOSTNAME",
@@ -222,7 +222,7 @@ func TestBuildSyslogMessage_PriorityBoundary(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := SyslogConfig{
+			config := Config{
 				Facility:      tt.facility,
 				Severity:      tt.severity,
 				MessageFormat: MessageFormatRawPRI,
@@ -340,7 +340,7 @@ func TestBuildSyslogMessage_LegacyUseRFC5424FallbackSelectsFormat(t *testing.T) 
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := SyslogConfig{
+			config := Config{
 				Facility:   16,
 				Severity:   6,
 				Hostname:   "myhost",
@@ -374,7 +374,7 @@ func TestBuildSyslogMessage_LegacyUseRFC5424FallbackSelectsFormat(t *testing.T) 
 // =============================================================================
 
 func TestBuildSyslogMessage_RFC5424StructureUnchanged(t *testing.T) {
-	config := SyslogConfig{
+	config := Config{
 		Facility:      16,
 		Severity:      6,
 		Hostname:      "myhost",
@@ -415,7 +415,7 @@ func TestBuildSyslogMessage_RFC5424StructureUnchanged(t *testing.T) {
 }
 
 func TestBuildSyslogMessage_RFC5424DefaultsMissingFieldsToNil(t *testing.T) {
-	config := SyslogConfig{
+	config := Config{
 		Facility:      16,
 		Severity:      6,
 		MessageFormat: MessageFormatRFC5424,
@@ -439,7 +439,7 @@ func TestBuildSyslogMessage_RFC5424DefaultsMissingFieldsToNil(t *testing.T) {
 }
 
 func TestBuildSyslogMessage_RFC3164StructureUnchanged(t *testing.T) {
-	config := SyslogConfig{
+	config := Config{
 		Facility:      16,
 		Severity:      6,
 		Hostname:      "myhost",
@@ -481,7 +481,7 @@ func TestValidateConfig_MessageFormat(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := SyslogConfig{
+			config := Config{
 				Address:       "127.0.0.1",
 				Port:          "514",
 				Protocol:      "tcp",
@@ -512,7 +512,7 @@ func TestValidateConfig_MessageFormat(t *testing.T) {
 }
 
 func TestValidateConfig_PreservesExistingBehaviour(t *testing.T) {
-	config := SyslogConfig{
+	config := Config{
 		Address:  "127.0.0.1",
 		Port:     "514",
 		Protocol: "tcp",
@@ -522,8 +522,8 @@ func TestValidateConfig_PreservesExistingBehaviour(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if config.FramingMethod != framing.RecommendedFramingMethod() {
-		t.Errorf("FramingMethod = %q, want %q", config.FramingMethod, framing.RecommendedFramingMethod())
+	if config.Method != framing.RecommendedFramingMethod() {
+		t.Errorf("Method = %q, want %q", config.Method, framing.RecommendedFramingMethod())
 	}
 	if config.Appname != "sendlog" {
 		t.Errorf("Appname = %q, want %q", config.Appname, "sendlog")
@@ -544,7 +544,7 @@ func TestValidateConfig_PreservesExistingBehaviour(t *testing.T) {
 func TestFrame_OctetCountMatchesRawPRIByteLength(t *testing.T) {
 	const esetMessage = `1 2022-04-11T10:41:05.300Z esmc ERAServer 11804 - - {"event_type":"FirewallAggregated_Event","severity":"Warning","hostname":"东京-01"}`
 
-	config := SyslogConfig{
+	config := Config{
 		Facility:      1,
 		Severity:      4,
 		MessageFormat: MessageFormatRawPRI,
@@ -555,7 +555,7 @@ func TestFrame_OctetCountMatchesRawPRIByteLength(t *testing.T) {
 		t.Fatalf("BuildMessage returned unexpected error: %v", err)
 	}
 
-	framer := framing.NewFramer(framing.FramingConfig{Method: framing.OctetCounting, ValidateUTF8: true})
+	framer := framing.NewFramer(framing.Config{Method: framing.OctetCounting, ValidateUTF8: true})
 	framed, err := framer.Frame(syslogMsg)
 	if err != nil {
 		t.Fatalf("Frame returned unexpected error: %v", err)

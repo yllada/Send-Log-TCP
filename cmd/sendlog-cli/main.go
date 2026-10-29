@@ -145,14 +145,14 @@ func (c *connFlags) register(fs *flag.FlagSet) {
 
 // msgFlags holds the message-formatting options
 type msgFlags struct {
-	messages  multiFlag
-	file      string
-	facility  int
-	severity  int
-	hostname  string
-	appname   string
-	format    string
-	use5424   bool
+	messages multiFlag
+	file     string
+	facility int
+	severity int
+	hostname string
+	appname  string
+	format   string
+	use5424  bool
 }
 
 func (m *msgFlags) register(fs *flag.FlagSet) {
@@ -192,12 +192,12 @@ func (m *multiFlag) Set(v string) error {
 	return nil
 }
 
-func dialConfig(c *connFlags, m *msgFlags) syslog.SyslogConfig {
-	return syslog.SyslogConfig{
+func dialConfig(c *connFlags, m *msgFlags) syslog.Config {
+	return syslog.Config{
 		Address:        c.address,
 		Port:           c.port,
 		Protocol:       strings.ToLower(c.protocol),
-		FramingMethod:  framing.FramingMethod(c.framing),
+		Method:         framing.Method(c.framing),
 		Facility:       uint8(m.facility),
 		Severity:       uint8(m.severity),
 		Hostname:       m.hostname,
@@ -226,8 +226,8 @@ func emitJSON(v interface{}) {
 // ================================================================================
 
 type sendResult struct {
-	OK   bool     `json:"ok"`
-	Sent int      `json:"sent"`
+	OK     bool     `json:"ok"`
+	Sent   int      `json:"sent"`
 	Errors []string `json:"errors,omitempty"`
 }
 
@@ -237,7 +237,7 @@ func cmdSend(args []string) error {
 	var m msgFlags
 	c.register(fs)
 	m.register(fs)
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	config := dialConfig(&c, &m)
 
@@ -295,7 +295,7 @@ func cmdConnect(args []string) error {
 	fs := flag.NewFlagSet("connect", flag.ExitOnError)
 	var c connFlags
 	c.register(fs)
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	protocolInfo, err := syslog.CheckConnection(
 		c.address, c.port, strings.ToLower(c.protocol),
@@ -330,7 +330,7 @@ func cmdStress(args []string) error {
 	duration := fs.Int("duration", 0, "stop after N seconds (0 = until Ctrl+C)")
 	maxMessages := fs.Int("max-messages", 0, "stop after N messages (0 = unlimited)")
 	randomize := fs.Bool("randomize", false, "prefix each message with sequence and timestamp")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	// Base message: first -m/-message, else the default string
 	base := "stress test"
@@ -346,7 +346,7 @@ func cmdStress(args []string) error {
 		Port:           c.port,
 		Protocol:       strings.ToLower(c.protocol),
 		Message:        base,
-		FramingMethod:  framing.FramingMethod(c.framing),
+		Method:         framing.Method(c.framing),
 		Facility:       uint8(m.facility),
 		Severity:       uint8(m.severity),
 		Hostname:       m.hostname,
@@ -406,9 +406,9 @@ func cmdStress(args []string) error {
 // ================================================================================
 
 type profileJSON struct {
-	OK       bool                `json:"ok"`
+	OK       bool                        `json:"ok"`
 	Profiles []storage.ConnectionProfile `json:"profiles,omitempty"`
-	Error    string              `json:"error,omitempty"`
+	Error    string                      `json:"error,omitempty"`
 }
 
 func cmdProfile(args []string) error {
@@ -430,7 +430,7 @@ func cmdProfile(args []string) error {
 func profileList(args []string) error {
 	fs := flag.NewFlagSet("profile list", flag.ExitOnError)
 	jsonOut := fs.Bool("json", false, "JSON output")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	profiles, err := storage.GetProfiles()
 	if err != nil {
@@ -452,7 +452,7 @@ func profileList(args []string) error {
 		if p.UseTLS {
 			proto += "+TLS"
 		}
-		fmt.Printf("%s  %s:%s  %s  framing=%s\n", p.ID, p.Address, p.Port, proto, p.FramingMethod)
+		fmt.Printf("%s  %s:%s  %s  framing=%s\n", p.ID, p.Address, p.Port, proto, p.Method)
 		if p.Name != "" {
 			fmt.Printf("      name=%s\n", p.Name)
 		}
@@ -466,7 +466,7 @@ func profileAdd(args []string) error {
 	desc := fs.String("description", "", "description")
 	c := connFlags{}
 	c.register(fs)
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	if *name == "" {
 		return fmt.Errorf("--name is required")
@@ -478,7 +478,7 @@ func profileAdd(args []string) error {
 		Address:        c.address,
 		Port:           c.port,
 		Protocol:       strings.ToLower(c.protocol),
-		FramingMethod:  c.framing,
+		Method:         c.framing,
 		UseTLS:         c.useTLS,
 		TLSVerify:      c.tlsVerify,
 		CACertPath:     c.ca,
@@ -513,7 +513,7 @@ func cmdTemplate(args []string) error {
 	}
 	fs := flag.NewFlagSet("template list", flag.ExitOnError)
 	jsonOut := fs.Bool("json", false, "JSON output")
-	fs.Parse(args[1:])
+	_ = fs.Parse(args[1:])
 
 	templates, err := storage.GetTemplates()
 	if err != nil {
@@ -542,7 +542,7 @@ func cmdImport(args []string) error {
 	fs.StringVar(file, "file", "", "JSON file to import (alias)")
 	merge := fs.Bool("merge", true, "merge with existing storage (default) vs replace")
 	jsonOut := fs.Bool("json", false, "JSON output")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	if *file == "" {
 		return fmt.Errorf("-f <file> is required")

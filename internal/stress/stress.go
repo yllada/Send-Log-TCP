@@ -16,15 +16,15 @@ import (
 // ContinuousSendConfig configuration for continuous/stress test mode
 type ContinuousSendConfig struct {
 	// Connection settings
-	Address       string        `json:"Address"`
-	Port          string        `json:"Port"`
-	Protocol      string        `json:"Protocol"`
-	Message       string        `json:"Message"`
-	FramingMethod framing.FramingMethod `json:"FramingMethod"`
-	Facility      uint8         `json:"Facility"`
-	Severity      uint8         `json:"Severity"`
-	Hostname      string        `json:"Hostname"`
-	Appname       string        `json:"Appname"`
+	Address       string               `json:"Address"`
+	Port          string               `json:"Port"`
+	Protocol      string               `json:"Protocol"`
+	Message       string               `json:"Message"`
+	Method        framing.Method       `json:"FramingMethod"`
+	Facility      uint8                `json:"Facility"`
+	Severity      uint8                `json:"Severity"`
+	Hostname      string               `json:"Hostname"`
+	Appname       string               `json:"Appname"`
 	MessageFormat syslog.MessageFormat `json:"MessageFormat"`
 	// UseRFC5424 is the legacy format switch, kept for stored configs.
 	// MessageFormat takes precedence when set.
@@ -138,11 +138,11 @@ func (s *Engine) runContinuousSend(ctx context.Context, config ContinuousSendCon
 	}()
 
 	// Build syslog config
-	syslogConfig := syslog.SyslogConfig{
+	syslogConfig := syslog.Config{
 		Address:        config.Address,
 		Port:           config.Port,
 		Protocol:       config.Protocol,
-		FramingMethod:  config.FramingMethod,
+		Method:         config.Method,
 		Facility:       config.Facility,
 		Severity:       config.Severity,
 		Hostname:       config.Hostname,
@@ -171,8 +171,8 @@ func (s *Engine) runContinuousSend(ctx context.Context, config ContinuousSendCon
 	// Create framer for TCP
 	var framer *framing.Framer
 	if config.Protocol == "tcp" {
-		framer = framing.NewFramer(framing.FramingConfig{
-			Method:           config.FramingMethod,
+		framer = framing.NewFramer(framing.Config{
+			Method:           config.Method,
 			ValidateUTF8:     true,
 			MaxMessageLength: 0,
 		})

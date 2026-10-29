@@ -11,7 +11,7 @@ import (
 // Tests for TCP framing methods: Octet Counting and Non-Transparent Framing
 // =============================================================================
 
-func TestDefaultFramingConfig(t *testing.T) {
+func TestDefaultConfig(t *testing.T) {
 	config := DefaultFramingConfig()
 
 	if config.Method != OctetCounting {
@@ -26,7 +26,7 @@ func TestDefaultFramingConfig(t *testing.T) {
 }
 
 func TestNewFramer(t *testing.T) {
-	config := FramingConfig{
+	config := Config{
 		Method:           NonTransparent,
 		ValidateUTF8:     false,
 		MaxMessageLength: 1024,
@@ -84,7 +84,7 @@ func TestFrameOctetCounting(t *testing.T) {
 		},
 	}
 
-	framer := NewFramer(FramingConfig{
+	framer := NewFramer(Config{
 		Method:       OctetCounting,
 		ValidateUTF8: true,
 	})
@@ -130,7 +130,7 @@ func TestFrameNonTransparent(t *testing.T) {
 		},
 	}
 
-	framer := NewFramer(FramingConfig{
+	framer := NewFramer(Config{
 		Method:       NonTransparent,
 		ValidateUTF8: true,
 	})
@@ -150,7 +150,7 @@ func TestFrameNonTransparent(t *testing.T) {
 }
 
 func TestFrameNonTransparentRejectsNewline(t *testing.T) {
-	framer := NewFramer(FramingConfig{
+	framer := NewFramer(Config{
 		Method:       NonTransparent,
 		ValidateUTF8: true,
 	})
@@ -172,14 +172,14 @@ func TestFrameNonTransparentRejectsNewline(t *testing.T) {
 func TestFrameValidation(t *testing.T) {
 	tests := []struct {
 		name        string
-		config      FramingConfig
+		config      Config
 		message     string
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name: "empty message",
-			config: FramingConfig{
+			config: Config{
 				Method:       OctetCounting,
 				ValidateUTF8: true,
 			},
@@ -189,7 +189,7 @@ func TestFrameValidation(t *testing.T) {
 		},
 		{
 			name: "message exceeds max length",
-			config: FramingConfig{
+			config: Config{
 				Method:           OctetCounting,
 				ValidateUTF8:     true,
 				MaxMessageLength: 10,
@@ -200,7 +200,7 @@ func TestFrameValidation(t *testing.T) {
 		},
 		{
 			name: "message at exact max length",
-			config: FramingConfig{
+			config: Config{
 				Method:           OctetCounting,
 				ValidateUTF8:     true,
 				MaxMessageLength: 10,
@@ -210,7 +210,7 @@ func TestFrameValidation(t *testing.T) {
 		},
 		{
 			name: "invalid UTF-8 with validation enabled",
-			config: FramingConfig{
+			config: Config{
 				Method:       OctetCounting,
 				ValidateUTF8: true,
 			},
@@ -220,7 +220,7 @@ func TestFrameValidation(t *testing.T) {
 		},
 		{
 			name: "invalid UTF-8 with validation disabled",
-			config: FramingConfig{
+			config: Config{
 				Method:       OctetCounting,
 				ValidateUTF8: false,
 			},
@@ -256,7 +256,7 @@ func TestFrameValidation(t *testing.T) {
 func TestFrameBatch(t *testing.T) {
 	tests := []struct {
 		name     string
-		method   FramingMethod
+		method   Method
 		messages []string
 		expected string
 	}{
@@ -282,7 +282,7 @@ func TestFrameBatch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			framer := NewFramer(FramingConfig{
+			framer := NewFramer(Config{
 				Method:       tt.method,
 				ValidateUTF8: true,
 			})
@@ -309,7 +309,7 @@ func TestFrameBatchEmpty(t *testing.T) {
 }
 
 func TestFrameBatchWithInvalidMessage(t *testing.T) {
-	framer := NewFramer(FramingConfig{
+	framer := NewFramer(Config{
 		Method:       NonTransparent,
 		ValidateUTF8: true,
 	})
@@ -331,13 +331,13 @@ func TestFrameBatchWithInvalidMessage(t *testing.T) {
 
 func TestIsValidFramingMethod(t *testing.T) {
 	tests := []struct {
-		method FramingMethod
+		method Method
 		valid  bool
 	}{
 		{OctetCounting, true},
 		{NonTransparent, true},
-		{FramingMethod("invalid"), false},
-		{FramingMethod(""), false},
+		{Method("invalid"), false},
+		{Method(""), false},
 	}
 
 	for _, tt := range tests {
@@ -362,7 +362,7 @@ func TestRecommendedFramingMethod(t *testing.T) {
 
 func TestOctetCountingLargeMessage(t *testing.T) {
 	// Test with a message that has multi-digit length prefix
-	framer := NewFramer(FramingConfig{
+	framer := NewFramer(Config{
 		Method:       OctetCounting,
 		ValidateUTF8: false, // disable for raw bytes
 	})
@@ -386,8 +386,8 @@ func TestOctetCountingLargeMessage(t *testing.T) {
 }
 
 func TestFrameUnknownMethodFallsBackToOctetCounting(t *testing.T) {
-	framer := NewFramer(FramingConfig{
-		Method:       FramingMethod("unknown"),
+	framer := NewFramer(Config{
+		Method:       Method("unknown"),
 		ValidateUTF8: true,
 	})
 
@@ -408,7 +408,7 @@ func TestFrameUnknownMethodFallsBackToOctetCounting(t *testing.T) {
 // =============================================================================
 
 func BenchmarkFrameOctetCounting(b *testing.B) {
-	framer := NewFramer(FramingConfig{
+	framer := NewFramer(Config{
 		Method:       OctetCounting,
 		ValidateUTF8: true,
 	})
@@ -421,7 +421,7 @@ func BenchmarkFrameOctetCounting(b *testing.B) {
 }
 
 func BenchmarkFrameNonTransparent(b *testing.B) {
-	framer := NewFramer(FramingConfig{
+	framer := NewFramer(Config{
 		Method:       NonTransparent,
 		ValidateUTF8: true,
 	})
@@ -434,7 +434,7 @@ func BenchmarkFrameNonTransparent(b *testing.B) {
 }
 
 func BenchmarkFrameBatch100Messages(b *testing.B) {
-	framer := NewFramer(FramingConfig{
+	framer := NewFramer(Config{
 		Method:       OctetCounting,
 		ValidateUTF8: true,
 	})

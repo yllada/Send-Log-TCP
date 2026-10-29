@@ -1,3 +1,4 @@
+// Package framing implements RFC 6587 TCP framing for syslog messages.
 package framing
 
 import (
@@ -6,18 +7,18 @@ import (
 	"unicode/utf8"
 )
 
-// FramingConfig contiene la configuración para el framing de mensajes syslog sobre TCP
+// Config contiene la configuración para el framing de mensajes syslog sobre TCP
 // según RFC 6587: "Transmission of Syslog Messages over TCP"
-type FramingConfig struct {
-	Method           FramingMethod // Método de framing a utilizar
-	ValidateUTF8     bool          // Si true, valida que el mensaje sea UTF-8 válido (RFC 5424)
-	MaxMessageLength int           // Longitud máxima del mensaje en bytes (0 = sin límite)
+type Config struct {
+	Method           Method // Método de framing a utilizar
+	ValidateUTF8     bool   // Si true, valida que el mensaje sea UTF-8 válido (RFC 5424)
+	MaxMessageLength int    // Longitud máxima del mensaje en bytes (0 = sin límite)
 }
 
 // DefaultFramingConfig retorna una configuración por defecto siguiendo las recomendaciones
 // de RFC 6587 (octet-counting es el método preferido)
-func DefaultFramingConfig() FramingConfig {
-	return FramingConfig{
+func DefaultFramingConfig() Config {
+	return Config{
 		Method:           OctetCounting, // RFC 6587 recomienda octet-counting
 		ValidateUTF8:     true,          // RFC 5424 requiere UTF-8
 		MaxMessageLength: 0,             // Sin límite (el servidor puede imponer sus propios límites)
@@ -27,11 +28,11 @@ func DefaultFramingConfig() FramingConfig {
 // Framer proporciona funcionalidad de framing para mensajes syslog sobre TCP
 // Implementa los métodos definidos en RFC 6587
 type Framer struct {
-	config FramingConfig
+	config Config
 }
 
 // NewFramer crea un nuevo framer con la configuración especificada
-func NewFramer(config FramingConfig) *Framer {
+func NewFramer(config Config) *Framer {
 	return &Framer{
 		config: config,
 	}
@@ -182,7 +183,7 @@ func (f *Framer) FrameBatch(messages []string) ([]byte, error) {
 }
 
 // IsValidFramingMethod verifica si el método de framing es válido según RFC 6587
-func IsValidFramingMethod(method FramingMethod) bool {
+func IsValidFramingMethod(method Method) bool {
 	return method == OctetCounting || method == NonTransparent
 }
 
@@ -191,7 +192,7 @@ func IsValidFramingMethod(method FramingMethod) bool {
 //   - No tiene restricciones sobre el contenido del mensaje
 //   - Es más eficiente de parsear
 //   - No requiere escaneo del contenido
-func RecommendedFramingMethod() FramingMethod {
+func RecommendedFramingMethod() Method {
 	return OctetCounting
 }
 
@@ -199,13 +200,13 @@ func RecommendedFramingMethod() FramingMethod {
 // SHARED FRAMING TYPES
 // ================================================================================
 
-// FramingMethod specifies the framing method for TCP per RFC 6587
-type FramingMethod string
+// Method specifies the framing method for TCP per RFC 6587
+type Method string
 
 const (
 	// OctetCounting implements octet counting method (RFC 6587 Section 3.4.1)
-	OctetCounting FramingMethod = "octet-counting"
+	OctetCounting Method = "octet-counting"
 
 	// NonTransparent implements non-transparent framing (RFC 6587 Section 3.4.2)
-	NonTransparent FramingMethod = "non-transparent"
+	NonTransparent Method = "non-transparent"
 )
