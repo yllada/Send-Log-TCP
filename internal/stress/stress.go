@@ -20,7 +20,7 @@ type ContinuousSendConfig struct {
 	Port          string               `json:"Port"`
 	Protocol      string               `json:"Protocol"`
 	Message       string               `json:"Message"`
-	Method        framing.Method       `json:"framingMethod"`
+	Method        framing.Method       `json:"FramingMethod"`
 	Facility      uint8                `json:"Facility"`
 	Severity      uint8                `json:"Severity"`
 	Hostname      string               `json:"Hostname"`
