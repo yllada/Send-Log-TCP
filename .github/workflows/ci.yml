@@ -8,6 +8,7 @@
 #   - lint: Run golangci-lint for code quality
 #   - frontend: Run frontend type checking
 #   - build-check: Build the real frontend and compile the Go binary
+#   - cli: Build the sendlog-cli binary for Linux (amd64)
 # =============================================================================
 
 name: CI
@@ -188,3 +189,37 @@ jobs:
 
       - name: Build Go (without CGO for quick check)
         run: CGO_ENABLED=0 go build -o /dev/null ./...
+
+  # ===========================================================================
+  # Job: CLI Build (Linux)
+  # ===========================================================================
+  # The CLI reuses the internal core but has no Wails/webview dependency, so
+  # it builds without the frontend and without CGO.
+  cli:
+    name: Build sendlog-cli (linux/amd64)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build CLI
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+            -o sendlog-cli-linux-amd64 \
+            -ldflags "-s -w -X main.version=$(git describe --tags --always 2>/dev/null || echo dev)" \
+            ./cmd/sendlog-cli
+          ./sendlog-cli-linux-amd64 version
+          ./sendlog-cli-linux-amd64 help > /dev/null
+
+      - name: Upload CLI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sendlog-cli-linux-amd64
+          path: sendlog-cli-linux-amd64

@@ -1,4 +1,4 @@
-package main
+package storage
 
 import (
 	"encoding/json"
@@ -104,9 +104,9 @@ func TestStorageDataEmptyArrays(t *testing.T) {
 // =============================================================================
 
 func TestGenerateID(t *testing.T) {
-	id1 := generateID()
+	id1 := GenerateID()
 	if id1 == "" {
-		t.Error("generateID returned empty string")
+		t.Error("GenerateID returned empty string")
 	}
 
 	// IDs should be numeric (timestamp based)
@@ -119,14 +119,14 @@ func TestGenerateID(t *testing.T) {
 	// Sleep a bit to ensure different timestamp
 	time.Sleep(time.Nanosecond * 100)
 
-	id2 := generateID()
+	id2 := GenerateID()
 	if id1 == id2 {
 		t.Error("generated IDs should be unique")
 	}
 }
 
 func TestGenerateIDLength(t *testing.T) {
-	id := generateID()
+	id := GenerateID()
 	// Unix nano timestamp should be at least 19 digits (as of 2024)
 	if len(id) < 18 {
 		t.Errorf("ID seems too short: %q (len=%d)", id, len(id))
@@ -378,7 +378,7 @@ func TestStorageWithLargeNumberOfItems(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		storage.Profiles[i] = ConnectionProfile{
-			ID:      generateID(),
+			ID:      GenerateID(),
 			Name:    "Profile " + strings.Repeat("X", i%10),
 			Address: "192.168.1." + string(rune('0'+i%10)),
 			Port:    "514",
@@ -388,7 +388,7 @@ func TestStorageWithLargeNumberOfItems(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		storage.Templates[i] = LogTemplate{
-			ID:      generateID(),
+			ID:      GenerateID(),
 			Name:    "Template " + strings.Repeat("Y", i%10),
 			Message: "Test message " + string(rune('0'+i%10)),
 		}
@@ -418,19 +418,19 @@ func TestStorageWithLargeNumberOfItems(t *testing.T) {
 // =============================================================================
 
 func TestStorageConstants(t *testing.T) {
-	if storageVersion < 1 {
+	if StorageVersion < 1 {
 		t.Error("storage version should be at least 1")
 	}
 
-	if storageFileName == "" {
+	if StorageFileName == "" {
 		t.Error("storage file name should not be empty")
 	}
 
-	if !strings.HasSuffix(storageFileName, ".json") {
+	if !strings.HasSuffix(StorageFileName, ".json") {
 		t.Error("storage file should be JSON")
 	}
 
-	if appFolderName == "" {
+	if AppFolderName == "" {
 		t.Error("app folder name should not be empty")
 	}
 }

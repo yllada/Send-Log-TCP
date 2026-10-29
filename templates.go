@@ -2,29 +2,18 @@ package main
 
 import (
 	"context"
+
+	"Sendlog-Syslog/internal/storage"
 )
 
 // ================================================================================
 // TEMPLATE SERVICE - Manages log templates (Enterprise Feature)
 // Follows Single Responsibility Principle: handles only template CRUD operations
+// The persistence itself lives in internal/storage, shared with the CLI.
 // ================================================================================
 
-// LogTemplate represents a reusable log message template
-type LogTemplate struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	Message     string `json:"message"`
-	Facility    uint8  `json:"facility"`
-	Severity    uint8  `json:"severity"`
-	Appname     string `json:"appname"`
-	// MessageFormat is optional so templates stored before it existed still
-	// decode; an empty value falls back to UseRFC5424.
-	MessageFormat string `json:"messageFormat,omitempty"`
-	UseRFC5424    bool   `json:"useRfc5424"`
-	CreatedAt     int64  `json:"createdAt"`
-	UpdatedAt     int64  `json:"updatedAt"`
-}
+// LogTemplate aliases the internal template type so the frontend binding shape is unchanged
+type LogTemplate = storage.LogTemplate
 
 // TemplateService handles log template operations
 type TemplateService struct {
@@ -36,24 +25,24 @@ func NewTemplateService() *TemplateService {
 	return &TemplateService{}
 }
 
-// SetContext sets the Wails runtime context
+// SetContext sets the Wails runtime context (kept for symmetry with other services)
 func (t *TemplateService) SetContext(ctx context.Context) {
 	t.ctx = ctx
 }
 
 // GetTemplates returns all saved log templates
 func (t *TemplateService) GetTemplates() ([]LogTemplate, error) {
-	return getTemplatesFromStorage()
+	return storage.GetTemplates()
 }
 
 // SaveTemplate saves a new or updates an existing log template
 func (t *TemplateService) SaveTemplate(template LogTemplate) (LogTemplate, error) {
-	return saveTemplateToStorage(template)
+	return storage.SaveTemplate(template)
 }
 
 // DeleteTemplate deletes a log template by ID
 func (t *TemplateService) DeleteTemplate(id string) error {
-	return deleteTemplateFromStorage(id)
+	return storage.DeleteTemplate(id)
 }
 
 // ================================================================================
@@ -62,10 +51,10 @@ func (t *TemplateService) DeleteTemplate(id string) error {
 
 // ExportConfig exports all profiles and templates to a JSON string
 func (t *TemplateService) ExportConfig() (string, error) {
-	return exportConfigFromStorage()
+	return storage.Export()
 }
 
 // ImportConfig imports profiles and templates from a JSON string
 func (t *TemplateService) ImportConfig(jsonData string, merge bool) error {
-	return importConfigToStorage(jsonData, merge)
+	return storage.Import(jsonData, merge)
 }
