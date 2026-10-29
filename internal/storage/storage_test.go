@@ -16,8 +16,8 @@ import (
 // STORAGE DATA SERIALIZATION TESTS
 // =============================================================================
 
-func TestStorageDataSerialization(t *testing.T) {
-	storage := StorageData{
+func TestDataSerialization(t *testing.T) {
+	storage := Data{
 		Version: 1,
 		Profiles: []ConnectionProfile{
 			{
@@ -51,7 +51,7 @@ func TestStorageDataSerialization(t *testing.T) {
 	}
 
 	// Deserialize
-	var loaded StorageData
+	var loaded Data
 	if err := json.Unmarshal(data, &loaded); err != nil {
 		t.Fatalf("failed to deserialize: %v", err)
 	}
@@ -74,8 +74,8 @@ func TestStorageDataSerialization(t *testing.T) {
 	}
 }
 
-func TestStorageDataEmptyArrays(t *testing.T) {
-	storage := StorageData{
+func TestDataEmptyArrays(t *testing.T) {
+	storage := Data{
 		Version:   1,
 		Profiles:  []ConnectionProfile{},
 		Templates: []LogTemplate{},
@@ -86,7 +86,7 @@ func TestStorageDataEmptyArrays(t *testing.T) {
 		t.Fatalf("failed to serialize empty storage: %v", err)
 	}
 
-	var loaded StorageData
+	var loaded Data
 	if err := json.Unmarshal(data, &loaded); err != nil {
 		t.Fatalf("failed to deserialize empty storage: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestConnectionProfileJSON(t *testing.T) {
 		Address:        "syslog.example.com",
 		Port:           "6514",
 		Protocol:       "tcp",
-		FramingMethod:  "octet-counting",
+		Method:         "octet-counting",
 		UseTLS:         true,
 		TLSVerify:      true,
 		CACertPath:     "/path/to/ca.pem",
@@ -243,7 +243,7 @@ func TestLogTemplateJSON(t *testing.T) {
 // =============================================================================
 
 func TestImportExportRoundTrip(t *testing.T) {
-	original := StorageData{
+	original := Data{
 		Version: 1,
 		Profiles: []ConnectionProfile{
 			{ID: "p1", Name: "Profile 1", Address: "192.168.1.1", Port: "514", Protocol: "tcp"},
@@ -262,7 +262,7 @@ func TestImportExportRoundTrip(t *testing.T) {
 	}
 
 	// Import
-	var imported StorageData
+	var imported Data
 	if err := json.Unmarshal(exported, &imported); err != nil {
 		t.Fatalf("failed to import: %v", err)
 	}
@@ -279,7 +279,7 @@ func TestImportExportRoundTrip(t *testing.T) {
 func TestImportInvalidJSON(t *testing.T) {
 	invalidJSON := `{"version": 1, "profiles": [`
 
-	var storage StorageData
+	var storage Data
 	err := json.Unmarshal([]byte(invalidJSON), &storage)
 	if err == nil {
 		t.Error("expected error for invalid JSON")
@@ -370,7 +370,7 @@ func TestTemplateWithUnicodeMessage(t *testing.T) {
 }
 
 func TestStorageWithLargeNumberOfItems(t *testing.T) {
-	storage := StorageData{
+	storage := Data{
 		Version:   1,
 		Profiles:  make([]ConnectionProfile, 100),
 		Templates: make([]LogTemplate, 100),
@@ -400,7 +400,7 @@ func TestStorageWithLargeNumberOfItems(t *testing.T) {
 		t.Fatalf("failed to marshal large storage: %v", err)
 	}
 
-	var loaded StorageData
+	var loaded Data
 	if err := json.Unmarshal(data, &loaded); err != nil {
 		t.Fatalf("failed to unmarshal large storage: %v", err)
 	}

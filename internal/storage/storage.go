@@ -19,7 +19,7 @@ type ConnectionProfile struct {
 	Address        string `json:"address"`
 	Port           string `json:"port"`
 	Protocol       string `json:"protocol"`
-	FramingMethod  string `json:"framingMethod"`
+	Method         string `json:"framingMethod"`
 	UseTLS         bool   `json:"useTls"`
 	TLSVerify      bool   `json:"tlsVerify"`
 	CACertPath     string `json:"caCertPath,omitempty"`
@@ -46,8 +46,8 @@ type LogTemplate struct {
 	UpdatedAt     int64  `json:"updatedAt"`
 }
 
-// StorageData represents the complete storage file structure
-type StorageData struct {
+// Data represents the complete storage file structure
+type Data struct {
 	Version   int                 `json:"version"`
 	Profiles  []ConnectionProfile `json:"profiles"`
 	Templates []LogTemplate       `json:"templates"`
@@ -55,9 +55,13 @@ type StorageData struct {
 
 const (
 	// StorageVersion is the schema version of the storage file
-	StorageVersion  = 1
+	StorageVersion = 1
+
+	// StorageFileName is the name of the JSON config file inside the app folder
 	StorageFileName = "sendlog-config.json"
-	AppFolderName   = "SendLog-Syslog"
+
+	// AppFolderName is the name of the application's configuration folder
+	AppFolderName = "SendLog-Syslog"
 )
 
 // Path returns the path to the storage file
@@ -77,7 +81,7 @@ func Path() (string, error) {
 }
 
 // Load loads the storage data from disk
-func Load() (*StorageData, error) {
+func Load() (*Data, error) {
 	path, err := Path()
 	if err != nil {
 		return nil, err
@@ -87,7 +91,7 @@ func Load() (*StorageData, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Return empty storage if file doesn't exist
-			return &StorageData{
+			return &Data{
 				Version:   StorageVersion,
 				Profiles:  []ConnectionProfile{},
 				Templates: []LogTemplate{},
@@ -96,7 +100,7 @@ func Load() (*StorageData, error) {
 		return nil, fmt.Errorf("failed to read storage file: %w", err)
 	}
 
-	var s StorageData
+	var s Data
 	if err := json.Unmarshal(data, &s); err != nil {
 		return nil, fmt.Errorf("failed to parse storage file: %w", err)
 	}
@@ -105,7 +109,7 @@ func Load() (*StorageData, error) {
 }
 
 // Save writes the storage data to disk
-func Save(s *StorageData) error {
+func Save(s *Data) error {
 	path, err := Path()
 	if err != nil {
 		return err
@@ -295,7 +299,7 @@ func Export() (string, error) {
 // Import loads profiles and templates from a JSON string.
 // merge=true adds to existing; merge=false replaces all.
 func Import(jsonData string, merge bool) error {
-	var imported StorageData
+	var imported Data
 	if err := json.Unmarshal([]byte(jsonData), &imported); err != nil {
 		return fmt.Errorf("invalid import data: %w", err)
 	}

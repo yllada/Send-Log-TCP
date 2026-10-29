@@ -57,7 +57,7 @@ func (c *ConnectionService) GetConnection() net.Conn {
 func (c *ConnectionService) CheckConnection(address string, port string, protocol string, useTLS bool, tlsVerify bool, caCertPath string, clientCertPath string, clientKeyPath string) (bool, error) {
 	fullAddress := net.JoinHostPort(address, port)
 
-	conn, err := syslog.Dial(syslog.SyslogConfig{
+	conn, err := syslog.Dial(syslog.Config{
 		Address:        address,
 		Port:           port,
 		Protocol:       protocol,

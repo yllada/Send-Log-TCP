@@ -15,12 +15,12 @@ import (
 // this service maps the Wails runtime context and events onto it.
 // ================================================================================
 
-// SyslogConfig aliases the internal config so the frontend binding shape is unchanged
-type SyslogConfig = syslog.SyslogConfig
-type SyslogResponse = syslog.SyslogResponse
+// Config aliases the internal config so the frontend binding shape is unchanged
+type Config = syslog.Config
+type Response = syslog.Response
 
-// FramingMethod aliases the internal framing method
-type FramingMethod = framing.FramingMethod
+// Method aliases the internal framing method
+type Method = framing.Method
 
 const (
 	// OctetCounting implements octet counting method (RFC 6587 Section 3.4.1)
@@ -65,7 +65,7 @@ func (s *SyslogService) SetContext(ctx context.Context) {
 }
 
 // SendSyslogMessages sends syslog messages and returns the result
-func (s *SyslogService) SendSyslogMessages(config SyslogConfig) SyslogResponse {
+func (s *SyslogService) SendSyslogMessages(config Config) Response {
 	// Emit start event
 	runtime.EventsEmit(s.ctx, "syslog:sending", map[string]interface{}{
 		"total": len(config.Messages),
