@@ -11,7 +11,7 @@ S1. User's request (verbatim): "lo q quiero es hacer esta aplicacion de manera n
 
 S2. Scope decisions (verbatim, 2026-07-06): repo = "In-place, rama nueva" → work on branch `native-rewrite`, `main` untouched. GUI toolkit = "Decidir después" → TUI is the current deliverable; GUI must be native and multiplatform, "principalmente windows y linux" (decided later, after core + TUI validation).
 
-S3. The TUI must cover the full functionality of the current app (S1 "de manera detallada para lo que está hecha la aplicación como tal"): connection settings, message composition, multiple messages, batch import, sending with progress/results, stress test with live stats, profiles CRUD, templates CRUD, config import/export. All sending goes through the existing `internal/syslog`, `internal/framing`, `internal/stress`, `internal/storage`, `internal/logimport` packages — no reimplementation of protocol logic.
+S3. The TUI covers the functional core of sending logs: connection settings, message composition (one or many), batch file import into the message list, manual sending with per-message progress/results, and continuous auto-send of logs with live stats. All sending goes through the existing `internal/syslog`, `internal/framing`, `internal/stress`, `internal/logimport` packages — no reimplementation of protocol logic.
 
 S4. Primary objective end-to-end (S1): "poder enviar logs a un server syslog y poder recibir esos logs en un siem y ver q todo funcione correctamente" → the TUI must let the user point at a host, send messages, and see per-message success/failure; a `Test Connection` action must give the user an explicit pass/fail before bulk sending.
 
@@ -25,13 +25,13 @@ S8. Send flow (assumption: mirror Wails `SendMessages`): per-message progress, p
 
 S9. Stress screen (assumption: mirror Wails `StartStressTest`): message, messages/sec, duration (s), concurrent connections, start/stop, live stats (elapsed, sent, current avg rate).
 
-S10. Profiles screen (actual `storage` API: GetProfiles, SaveProfile upsert-by-ID, DeleteProfile; GUI has no rename/duplicate verbs — those were my invention, dropped): list, save new, load into current form, overwrite existing (edit → SaveProfile with same ID), delete.
+S10. CUT (profiles): dropped per the cutdown — storing connection profiles adds no functional value to sending logs.
 
-S11. Templates screen (actual `storage` API: GetTemplates, SaveTemplate upsert-by-ID, DeleteTemplate): list, save new, apply to current form (sets message, facility, severity, appname, format), overwrite existing, delete. `LogTemplate` carries Message/Facility/Severity/Appname/MessageFormat/UseRFC5424.
+S11. CUT (templates): dropped per the cutdown.
 
-S12. Config screen (actual API: `storage.Export()` returns JSON of all profiles+templates; `storage.Import(json, merge bool)`). The Wails GUI exposes the bindings but has NO UI wiring (verified: no .tsx calls ExportConfig/ImportConfig) — the TUI is where this lands: export to a user-chosen path, import from a path with merge/replace choice.
+S12. CUT (config export/import): dropped per the cutdown.
 
-S13. UI structure (assumption, my design): Bubble Tea root model with a left navigation menu (arrow keys move, enter selects) and 8 screens: Connection, Messages, Import File (batch logs, S7), Send (S8), Stress, Profiles, Templates, Config (S12 profile/template import/export). Global keys: `ctrl+c` quit, `esc`/`q` back to nav from a screen, `?` help. Lipgloss styling, single consistent dark-friendly palette, 100%-wide layout.
+S13. UI structure (my design): Bubble Tea root model with a navigation menu (arrow keys move, enter selects) and 5 screens: Connection (S5), Messages (S6), Import File (S7), Send (S8), Stress/Auto-send (S9). Global keys: `ctrl+c` quit, `esc` back to nav (from nav = quit). Lipgloss styling, single consistent dark-friendly palette, 100%-wide layout.
 
 S14. New command name: `sendlog` (distinct from the existing `sendlog-cli` which stays untouched on this branch).
 
@@ -39,13 +39,13 @@ S15. Code quality (user, verbatim 2026-07-06): "tenemos q conrruir esta app usan
 
 ## Tasks
 
-- T1 (S2,S13,S14,S15): scaffold — inline. Deps + `cmd/sendlog` main + root model + nav menu + all 7 screens stubbed + styles. Route: inline (parent). Status: pending.
-- T2 (S4,S5,S15): shared `AppState` (connection + messages + stress fields, JSON tags matching S12) + reusable `OptionSelector` component + Connection screen completed (fields, validation, Test Connection via `syslog.Dial` + close) as the exemplar pattern for T3-T6. Route: inline. Status: pending.
-- T3 (S6,S7,S8,S15): Messages + Import + Send screens (format, facility/severity, raw PRI, add/remove/edit, batch import via `logimport.Import` with Append/Replace, per-message progress/results via `SendSyslogMessages` Response, summary). Route: delegated parallel writer. Status: pending.
-- T4 (S9,S15): Stress screen (message, rate, duration, start/stop, live stats via `stress.Engine` onStats callback bridged to tea.Msg ticker). Route: delegated parallel writer. Status: pending.
-- T5 (S10,S11,S15): Profiles + Templates screens (list, save upsert, load/apply to form, delete, `storage` reuse). Route: delegated parallel writer. Status: pending.
-- T6 (S12,S15): Config screen (Export to path, Import from path with merge/replace, `storage` reuse). Route: delegated parallel writer. Status: pending.
-- T7 (S1-S15): README section for the TUI (build, run, keybindings, examples incl. SIEM end-to-end check) + CI job building `cmd/sendlog` (pure Go, no CGO). Route: inline. Status: pending.
+- T1 (S2,S13,S14,S15): scaffold — inline. Deps + `cmd/sendlog` main + root model + nav menu + all 5 screens stubbed + styles. Status: done @ 2859bb1 (slice boundary: 515 lines, single scaffold unit; built before the cutdown, profiles/templates/config shells removed in T2).
+- T2 (S4,S5,S13,S15): root model esc/close protocol + `OptionSelector` + full Connection screen (tab focus cycle, option toggles, Test Connection via `syslog.Dial` + close, status/error lines) as the exemplar pattern for T3-T5. Route: inline (parent). Status: in progress.
+- T3 (S6,S7,S15): Messages screen (format, facility/severity, hostname/appname, raw PRI, add/remove/edit multiple messages) + Import File screen (path, `logimport.Import`, preview totals/errors, Append/Replace All). Route: delegated parallel writer.
+- T4 (S8,S15): Send screen (message list review, send via `syslog.SendSyslogMessages` with per-message progress/results + summary; test hook for unit tests). Route: delegated parallel writer.
+- T5 (S9,S15): Stress/Auto-send screen (message, messages/sec, duration, start/stop, live stats bridged from `stress.Engine` onStats to tea.Msg). Route: delegated parallel writer.
+- T6 (S1-S15): README section for the TUI (build, run, keybindings, examples incl. SIEM end-to-end check) + CI job building `cmd/sendlog` (pure Go, no CGO). Route: inline.
+- T7 (S1-S15): full-suite verification + close. Route: inline. Status: pending.
 
 ## Log
 
@@ -58,3 +58,7 @@ L3 (2026-07-06): Branch `native-rewrite` created from `main` @ d6c7a67. No `odd/
 L4 (user, 2026-07-06, verbatim): "tenemos q conrruir esta app usando buenas practicas de go y clean arquitecture, ademas de hacer el codigo sencillo y entendible sin mucho sobre ingieneria, usando la skill minimal comment para escribir code" → recorded as S15; all writers receive the minimal-comments skill path. Layering per S15: cmd/sendlog (wiring) → internal/tui (presentation) → internal/* (domain, untouched). No DI abstractions, no interfaces beyond what the models need.
 
 L5 (2026-07-06, spec corrections after reading the actual core APIs — previous summaries of internal/* in session memory were wrong and are superseded): (a) S7 rewritten: logimport returns `Result{Messages []string, TotalLines int, Errors []string}` with NO per-row facility/severity; GUI offers Append vs Replace All. (b) S10/S11 rewritten: storage has no Rename/Duplicate; only Get*/Save*(upsert by ID)/Delete*. (c) S12 rewritten: no form-snapshot export exists in the GUI (bindings ExportConfig/ImportConfig are never called from .tsx — half-finished feature); TUI covers it with storage.Export/Import (profiles+templates JSON, merge flag). (d) S9: `stress.ContinuousSendConfig` has no ConcurrentConnections field — it uses one connection with a rate ticker; the Wails GUI stress form is what the TUI mirrors (verified fields: message, messagesPerSec, duration, maxMessages, randomizeData available in config but GUI subset). The exact API reference is recorded in the Engram mirror under odd/sendlog-tui/tasks.
+
+L6 (2026-07-06, T1 done @ 2859bb1): Scaffold landed — deps (bubbletea 1.3.10, bubbles 1.0.0, lipgloss 1.1.0), root model + nav (8 screens), shared AppState with ToSyslogConfig/ToStressConfig projections, screen shells, styles, nav unit tests green, `go build`/`go vet`/`go test ./...` green, binary smoke-tested under a pseudo-TTY. Slice boundary: 515 lines (single cohesive scaffold unit, past ~400; next units stay <=400). lipgloss v1.1.0 API note for writers: `Bold(bool)` takes an argument (not `Bold()`).
+
+L7 (user, 2026-07-06, verbatim — scope cutdown): "mira la idea de reescribir la app es completa, para poder hacerla correctamente y sin errores, ademas de dejarlo sencillo solo lo q nos importa y q realmente vale la pena tener. Ni perfiles, ni import de configuraciones ni export ni nada q no brinde valor funcional a la aplicacion, importante su funcionamiento principal q es el envio de logs, tanto manual como automatico es decir q se puedan enviar logs de manera automatica cada segundo (como el strees) no se si me entiendes" → profiles/templates/config cut; 5 screens. Then (verbatim): "disculpa el import de archivos tambien se queda pero bien hecho" → Import File screen kept (S7).

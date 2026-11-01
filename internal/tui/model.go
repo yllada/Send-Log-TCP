@@ -6,6 +6,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// stateSyncer is implemented by screens that write their working fields back to
+// the shared state; the root calls it before closing so nothing is lost.
+type stateSyncer interface{ syncState() }
+
 type Model struct {
 	state    *AppState
 	width    int
@@ -27,9 +31,6 @@ var screens = []struct {
 	{"Import File", NewImportScreen},
 	{"Send", NewSendScreen},
 	{"Stress", NewStressScreen},
-	{"Profiles", NewProfilesScreen},
-	{"Templates", NewTemplatesScreen},
-	{"Config", NewConfigScreen},
 }
 
 func (m *Model) Init() tea.Cmd { return nil }
@@ -41,20 +42,18 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	if key, ok := msg.(tea.KeyMsg); ok {
-		switch key.String() {
-		case "ctrl+c":
-			return m, tea.Quit
-		case "esc":
-			if m.current != nil {
-				m.current = nil
-				return m, nil
-			}
-			return m, tea.Quit
-		}
+	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "ctrl+c" {
+		return m, tea.Quit
 	}
 
 	if m.current != nil {
+		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "esc" {
+			if syncer, ok := m.current.(stateSyncer); ok {
+				syncer.syncState()
+			}
+			m.current = nil
+			return m, nil
+		}
 		var cmd tea.Cmd
 		m.current, cmd = m.current.Update(msg)
 		return m, cmd
@@ -69,6 +68,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			m.current = screens[m.navIndex].new(m.state)
 			return m, m.current.Init()
+		case "esc":
+			return m, tea.Quit
 		}
 	}
 	return m, nil
@@ -90,6 +91,6 @@ func (m *Model) viewNav() string {
 			lines = append(lines, dim.Render("  "+s.label))
 		}
 	}
-	lines = append(lines, "", keyHelp("↑/↓ navigate · enter open · esc quit · ? help"))
-	return strings.Join(lines, "\n")
+	lines = append(lines, "", keyHelp("↑/↓ navigate · enter open · esc quit"))
+	return screenBox("SendLog", strings.Join(lines, "\n"))
 }
