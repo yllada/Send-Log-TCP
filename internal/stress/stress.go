@@ -1,6 +1,6 @@
 // Package stress implements the continuous / stress-test syslog send engine.
-// It is independent of the Wails GUI; stats are exposed via callbacks so the
-// GUI can emit runtime events and the CLI can print to stderr.
+// It is independent of any UI; stats are exposed via callbacks so the TUI
+// and CLI can display them.
 package stress
 
 import (

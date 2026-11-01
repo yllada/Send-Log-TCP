@@ -1,7 +1,7 @@
 // Package syslog implements the SendLog core: configuration validation,
 // RFC 5424 / RFC 3164 / raw-pri message building, and sending over TCP,
-// UDP or TLS. It is independent of the Wails GUI and is shared by the
-// desktop application and the CLI.
+// UDP or TLS. It is independent of any UI and is shared by the TUI and the
+// CLI.
 package syslog
 
 import (

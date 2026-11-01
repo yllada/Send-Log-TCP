@@ -1,6 +1,6 @@
-# Contributing to SendLog Syslog
+# Contributing to SendLog
 
-First off, thank you for considering contributing to SendLog Syslog! 🎉
+First off, thank you for considering contributing to SendLog! 🎉
 
 This document provides guidelines and steps for contributing to the project.
 
@@ -23,38 +23,10 @@ This project and everyone participating in it is governed by our [Code of Conduc
 
 ### Prerequisites
 
-- **Go 1.22+** - [Install Go](https://go.dev/doc/install)
-- **Node.js 20+** - [Install Node.js](https://nodejs.org/)
-- **pnpm** - `npm install -g pnpm`
-- **Wails CLI** - `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
+- **Go 1.25+** — [Install Go](https://go.dev/doc/install)
 
-### Platform-Specific Dependencies
-
-<details>
-<summary><b>Linux (Ubuntu/Debian)</b></summary>
-
-```bash
-# Ubuntu 24.04+
-sudo apt install -y libgtk-3-dev libwebkit2gtk-4.1-dev
-
-# Ubuntu 22.04
-sudo apt install -y libgtk-3-dev libwebkit2gtk-4.0-dev
-```
-</details>
-
-<details>
-<summary><b>macOS</b></summary>
-
-```bash
-xcode-select --install
-```
-</details>
-
-<details>
-<summary><b>Windows</b></summary>
-
-Install [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) (usually pre-installed on Windows 10/11).
-</details>
+That's it. SendLog is a single static Go binary with no webview, frontend, or
+system dependencies, so there is nothing else to install.
 
 ## Development Setup
 
@@ -64,22 +36,20 @@ Install [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/
    cd Send-Log-TCP
    ```
 
-2. **Install frontend dependencies**
+2. **Build**
    ```bash
-   cd frontend
-   pnpm install
-   cd ..
+   go build -o sendlog ./cmd/sendlog
    ```
 
-3. **Run in development mode**
+3. **Run the interactive terminal UI**
    ```bash
-   wails dev
+   ./sendlog
    ```
-   This starts the app with hot-reload enabled.
 
-4. **Build for production**
+4. **Use the CLI for automation**
    ```bash
-   wails build
+   ./sendlog send -a 127.0.0.1 -p 514 -t udp -m "hello"
+   ./sendlog help
    ```
 
 ## How to Contribute
@@ -91,8 +61,7 @@ Before creating bug reports, please check existing issues. When creating a bug r
 - **Clear title** describing the issue
 - **Steps to reproduce** the behavior
 - **Expected behavior** vs actual behavior
-- **Screenshots** if applicable
-- **Environment details** (OS, version, etc.)
+- **Environment details** (OS, version, `sendlog version`)
 
 Use the [Bug Report template](.github/ISSUE_TEMPLATE/bug_report.md).
 
@@ -100,15 +69,15 @@ Use the [Bug Report template](.github/ISSUE_TEMPLATE/bug_report.md).
 
 Feature suggestions are welcome! Please use the [Feature Request template](.github/ISSUE_TEMPLATE/feature_request.md) and include:
 
-- **Use case** - Why is this feature needed?
-- **Proposed solution** - How should it work?
-- **Alternatives considered** - Other approaches you've thought of
+- **Use case** — Why is this feature needed?
+- **Proposed solution** — How should it work?
+- **Alternatives considered** — Other approaches you've thought of
 
 ### Your First Contribution
 
 Look for issues labeled:
-- `good first issue` - Simple tasks for newcomers
-- `help wanted` - Issues where we need community help
+- `good first issue` — Simple tasks for newcomers
+- `help wanted` — Issues where we need community help
 
 ## Pull Request Process
 
@@ -134,7 +103,8 @@ Look for issues labeled:
 - Follow [Effective Go](https://go.dev/doc/effective_go) guidelines
 - Use `gofmt` for formatting
 - Keep functions focused (Single Responsibility Principle)
-- Add comments for exported functions
+- Prefer zero comments; let names carry intent. Comment only a genuine
+  non-obvious *why*, an external constraint, or a complex algorithm.
 - Error messages should be lowercase and not end with punctuation
 
 ```go
@@ -145,23 +115,19 @@ return fmt.Errorf("failed to connect: %w", err)
 return fmt.Errorf("Failed to connect: %w.", err)
 ```
 
-### TypeScript/React Code
-
-- Use TypeScript strict mode
-- Follow React hooks best practices
-- Use shadcn/ui components when possible
-- Keep components small and focused
-
-### File Organization
+### Project Layout
 
 ```
-├── *.go              # Backend services (one per concern)
-├── *_test.go         # Tests for each service
-├── frontend/
-│   └── src/
-│       ├── components/   # React components
-│       ├── hooks/        # Custom hooks
-│       └── wailsjs/      # Generated Wails bindings
+├── cmd/sendlog/     # Entry point: TUI when bare, CLI subcommands otherwise
+├── internal/
+│   ├── cli/         # Plain CLI (send/connect/stress) for automation
+│   ├── tui/         # Bubble Tea terminal UI
+│   ├── syslog/      # Syslog message building and sending
+│   ├── framing/     # TCP framing (octet-counting, non-transparent)
+│   ├── stress/      # Continuous send engine
+│   ├── storage/     # Local persistence
+│   └── logimport/   # Import messages from .json/.csv/.txt
+└── *_test.go        # Tests live next to the code they cover
 ```
 
 ## Testing
@@ -190,11 +156,11 @@ go test -bench=. ./...
 
 ```go
 func TestFrame_EmptyMessage(t *testing.T) {
-    framer := NewFramer(DefaultFramingConfig())
-    _, err := framer.Frame("")
-    if err == nil {
-        t.Error("expected error for empty message")
-    }
+	framer := NewFramer(DefaultFramingConfig())
+	_, err := framer.Frame("")
+	if err == nil {
+		t.Error("expected error for empty message")
+	}
 }
 ```
 
@@ -226,11 +192,11 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 ### Examples
 
 ```
-feat(profiles): add export to CSV functionality
+feat(tui): add stress screen with live stats
 
 fix(connection): handle TLS timeout properly
 
-docs: update installation instructions for Ubuntu 24.04
+docs: update installation instructions
 
 test(framing): add benchmarks for batch processing
 ```
@@ -238,7 +204,6 @@ test(framing): add benchmarks for batch processing
 ## Questions?
 
 - Open a [Discussion](https://github.com/yllada/Send-Log-TCP/discussions) for general questions
-- Join our community (link TBD)
 - Check existing issues and documentation
 
 ---
