@@ -10,14 +10,14 @@ import (
 )
 
 type sendScreen struct {
-	state         *AppState
-	cursor        int
-	sending       bool
-	current       int
-	total         int
-	percent       float64
-	sent          []string
-	errors        []string
+	state        *AppState
+	cursor       int
+	sending      bool
+	current      int
+	total        int
+	percent      float64
+	sent         []string
+	errors       []string
 	sendMessages func(syslog.Config, syslog.SendFunc) syslog.Response
 }
 
