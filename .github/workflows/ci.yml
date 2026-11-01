@@ -191,6 +191,38 @@ jobs:
         run: CGO_ENABLED=0 go build -o /dev/null ./...
 
   # ===========================================================================
+  # Job: TUI Build (Linux)
+  # ===========================================================================
+  # The TUI reuses the internal core like the CLI but has no Wails/webview
+  # dependency, so it builds without the frontend and without CGO.
+  tui:
+    name: Build sendlog TUI (linux/amd64)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build TUI
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+            -o sendlog-tui-linux-amd64 \
+            -ldflags "-s -w" \
+            ./cmd/sendlog
+
+      - name: Upload TUI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sendlog-tui-linux-amd64
+          path: sendlog-tui-linux-amd64
+
+  # ===========================================================================
   # Job: CLI Build (Linux)
   # ===========================================================================
   # The CLI reuses the internal core but has no Wails/webview dependency, so

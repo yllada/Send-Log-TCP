@@ -24,6 +24,7 @@ Built with [Wails v2](https://wails.io/) (Go + Web Technologies) | RFC 5424 & RF
 - [Features](#-features)
 - [Download](#-download)
 - [CLI (Linux)](#-cli-linux)
+- [TUI (Terminal)](#-tui-terminal)
 - [Quick Start](#-quick-start)
 - [Usage](#-usage)
 - [Development](#-development)
@@ -165,6 +166,27 @@ go build -ldflags "-s -w -X main.version=$(git describe --tags)" -o sendlog-cli 
 
 Progress and stats go to stderr; with `--json`, a single machine-readable
 line goes to stdout. Exit code is `0` on success, `1` on errors.
+
+---
+
+## 🖥 TUI (Terminal)
+
+A full terminal UI (Bubble Tea) that shares the exact same core as the
+GUI and CLI: connection settings with a Test Connection action, message
+composition (one or many), batch file import (.json/.csv/.txt), manual
+sending with per-message results, and continuous auto-send of logs at a
+fixed rate with live stats. It is a single static binary with no
+GUI dependency:
+
+```bash
+go build -o sendlog ./cmd/sendlog
+./sendlog
+```
+
+Navigate the screens with `↑/↓` + `enter`, move between fields with `tab`,
+toggle options with `l`, test the connection with `t`, and go back with
+`esc`. To prove end-to-end delivery, point it at a syslog server, send a
+message, and confirm it appears in your SIEM.
 
 ---
 
