@@ -8,18 +8,22 @@ Send syslog messages to a remote server — manually or on a fixed interval — 
 - Import messages from a file (`.json`, `.csv`, `.txt`)
 - Continuous sending at a fixed rate with live statistics
 
-## Run
+One binary, two ways to use it:
+
+- **`sendlog`** (no arguments) opens an interactive terminal UI.
+- **`sendlog send|connect|stress [flags]`** runs in command-line mode for scripts and automation.
+
+## Build
 
 ```bash
 go build -o sendlog ./cmd/sendlog
-./sendlog
 ```
 
 Single static binary, no dependencies.
 
-## How to use
+## Terminal UI
 
-Navigate the screens with `↑/↓` and `enter`; go back with `esc`; quit with `ctrl+c`. Move between fields with `tab`.
+Run `./sendlog` and navigate the screens with `↑/↓` and `enter`; go back with `esc`; quit with `ctrl+c`. Move between fields with `tab`.
 
 ### 1. Connection
 
@@ -69,6 +73,30 @@ Send the same message automatically at a fixed rate — for example one log per 
 | Duration | Seconds to keep sending. Empty runs until you stop it. |
 
 Press start, watch the live counters (sent, errors, rate, elapsed), and press stop when you are done. A final summary is shown.
+
+## CLI (automation)
+
+The same binary also runs as a plain command-line client for scripts and CI. Progress and stats go to stderr; add `--json` for a single machine-readable line on stdout. Exit code is `0` on success, `1` on error.
+
+```bash
+# Send one message over TCP (octet-counting framing, RFC 5424)
+./sendlog send -a 10.0.0.5 -p 514 -t tcp -m "deploy finished"
+
+# Send messages from a log file (.json / .csv / .txt)
+./sendlog send -a 10.0.0.5 -p 514 -t udp -f events.txt
+
+# mTLS (RFC 5425) with a client certificate
+./sendlog send -a 10.0.0.5 -p 6514 -t tcp --tls \
+  --cert client.pem --key client.key -m "secret log"
+
+# Test that a connection works
+./sendlog connect -a 10.0.0.5 -p 514 -t tcp --json
+
+# Continuous send: 50 msg/s for 60 seconds (Ctrl+C stops early)
+./sendlog stress -a 10.0.0.5 -p 514 -t tcp -m "load test" --rate 50 --duration 60
+```
+
+Run `./sendlog help` for the full flag reference.
 
 ## Verify in your SIEM
 
