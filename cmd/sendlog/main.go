@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"Sendlog-Syslog/internal/cli"
+	"Sendlog-Syslog/internal/gui"
 	"Sendlog-Syslog/internal/tui"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -12,11 +13,11 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		p := tea.NewProgram(tui.New())
-		if _, err := p.Run(); err != nil {
-			fmt.Fprintln(os.Stderr, "error:", err)
-			os.Exit(1)
+		if gui.Available() {
+			gui.Run()
+			return
 		}
+		runTUI()
 		return
 	}
 
@@ -25,6 +26,9 @@ func main() {
 
 	var err error
 	switch cmd {
+	case "tui":
+		runTUI()
+		return
 	case "send":
 		err = cli.RunSend(args)
 	case "connect":
@@ -42,6 +46,14 @@ func main() {
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func runTUI() {
+	p := tea.NewProgram(tui.New())
+	if _, err := p.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
 }

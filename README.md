@@ -8,22 +8,31 @@ Send syslog messages to a remote server — manually or on a fixed interval — 
 - Import messages from a file (`.json`, `.csv`, `.txt`)
 - Continuous sending at a fixed rate with live statistics
 
-One binary, two ways to use it:
+One binary, several ways to use it:
 
-- **`sendlog`** (no arguments) opens an interactive terminal UI.
+- **`sendlog`** (no arguments) opens the GTK4 desktop GUI on Linux; on other platforms (or without a display) it opens the terminal UI.
+- **`sendlog tui`** forces the terminal UI anywhere.
 - **`sendlog send|connect|stress [flags]`** runs in command-line mode for scripts and automation.
 
 ## Build
 
 ```bash
+# Terminal UI + CLI (static, no dependencies)
+go build -tags nocgo -o sendlog ./cmd/sendlog
+
+# Full binary with the GTK4 GUI (linux; needs CGO + GTK4/libadwaita headers)
 go build -o sendlog ./cmd/sendlog
 ```
 
-Single static binary, no dependencies.
+The GUI is linux-only and is compiled in when CGO is available. On any other platform, or with `CGO_ENABLED=0`, `sendlog` simply starts the terminal UI instead.
 
 ## Terminal UI
 
-Run `./sendlog` and navigate the screens with `↑/↓` and `enter`; go back with `esc`; quit with `ctrl+c`. Move between fields with `tab`.
+Run `./sendlog tui` (or `./sendlog` on a system without the GTK4 GUI) and navigate the screens with `↑/↓` and `enter`; go back with `esc`; quit with `ctrl+c`. Move between fields with `tab`.
+
+## Desktop GUI (GTK4, Linux)
+
+Run `./sendlog` with a display. It opens a single screen with three framed sections — **Connection**, **Message**, **Stress** — plus a live status area. The **Connect** button keeps a TCP/TLS socket open; **Send messages** and **Start stress** then reuse that connection until you disconnect. Importing a file fills the message editor, and stress runs show live counters and a progress bar.
 
 ### 1. Connection
 

@@ -1,0 +1,73 @@
+/*
+ * theme.css — SendLog GTK polish, layered over native Adwaita dark.
+ * Selectors are classes applied via AddCSSClass in the Go code.
+ */
+
+.sendlog-section {
+  background: alpha(@window_bg_color, 0.55);
+  border: 1px solid @borders;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.sendlog-section-sub {
+  color: @window_fg_color;
+  opacity: 0.6;
+  font-size: 0.9em;
+}
+
+.sendlog-field-label {
+  color: @window_fg_color;
+  opacity: 0.72;
+  font-size: 0.86em;
+}
+
+.sendlog-msg-view {
+  background-color: alpha(@window_bg_color, 0.6) !important;
+  border: 1px solid @borders;
+  border-radius: 10px;
+}
+
+.sendlog-msg-view text {
+  background-color: transparent !important;
+  color: @window_fg_color !important;
+}
+
+.sendlog-status {
+  background: alpha(@window_bg_color, 0.55);
+  border: 1px solid @borders;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.sendlog-status-icon {
+  font-weight: 700;
+}
+
+.sendlog-status-ok {
+  color: @success_color;
+}
+
+.sendlog-status-err {
+  color: @error_color;
+}
+
+.sendlog-status-warn {
+  color: @warning_color;
+}
+
+.sendlog-imported-badge {
+  color: @window_fg_color;
+  opacity: 0.75;
+}
+
+.sendlog-footer-note {
+  color: @window_fg_color;
+  opacity: 0.55;
+  font-size: 0.85em;
+}
+
+.sendlog-monospace {
+  font-family: monospace;
+  font-size: 0.9em;
+}

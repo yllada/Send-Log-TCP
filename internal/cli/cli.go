@@ -16,7 +16,8 @@ var Version = "dev"
 const usage = `sendlog — send syslog messages to a remote server
 
 Usage:
-  sendlog                            Interactive terminal UI
+  sendlog                            GUI on Linux, terminal UI elsewhere
+  sendlog tui                        Terminal UI (bubbletea)
   sendlog send [flags]               Send syslog messages
   sendlog connect [flags]            Test a connection
   sendlog stress [flags]             Continuous send at a fixed rate
