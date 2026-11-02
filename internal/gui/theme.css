@@ -1,10 +1,12 @@
 /*
- * theme.css — SendLog GTK polish, layered over native Adwaita dark.
+ * theme.css — SendLog GTK polish, layered over the active system theme.
  * Selectors are classes applied via AddCSSClass in the Go code.
+ * GTK4 CSS has no !important; theme names (@window_bg_color, etc.) are
+ * resolved per theme, so these look right on any distribution.
  */
 
 .sendlog-section {
-  background: alpha(@window_bg_color, 0.55);
+  background-color: alpha(@window_bg_color, 0.55);
   border: 1px solid @borders;
   border-radius: 12px;
   padding: 4px;
@@ -23,18 +25,18 @@
 }
 
 .sendlog-msg-view {
-  background-color: alpha(@window_bg_color, 0.6) !important;
+  background-color: @view_bg_color;
   border: 1px solid @borders;
   border-radius: 10px;
 }
 
 .sendlog-msg-view text {
-  background-color: transparent !important;
-  color: @window_fg_color !important;
+  background-color: transparent;
+  color: @window_fg_color;
 }
 
 .sendlog-status {
-  background: alpha(@window_bg_color, 0.55);
+  background-color: alpha(@window_bg_color, 0.55);
   border: 1px solid @borders;
   border-radius: 12px;
   padding: 10px 14px;
