@@ -7,6 +7,15 @@ linters:
     - errorlint
     - revive
     - unconvert
+  exclusions:
+    rules:
+      - linters:
+          - staticcheck
+        path: internal/gui/
+        text: "SA1019"
+        # gotk4 v0.3.2 has no gio.StringList and no DropDown notify::selected,
+        # so ComboBoxText is the only working select; migrate when the binding lands them.
+        why: "ComboBoxText is deprecated in GTK4 but the pinned gotk4 binding cannot drive DropDown."
 
 formatters:
   enable:

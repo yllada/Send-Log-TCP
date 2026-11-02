@@ -34,6 +34,7 @@ type State struct {
 	RandomizeData  bool
 }
 
+// DefaultState returns the GUI state seeded with the application defaults.
 func DefaultState() *State {
 	return &State{
 		Port:           "514",
@@ -50,6 +51,7 @@ func DefaultState() *State {
 	}
 }
 
+// ToSyslogConfig projects the GUI state into the domain send configuration.
 func (s *State) ToSyslogConfig() syslog.Config {
 	format := syslog.MessageFormat(s.Format)
 	if s.Raw {
@@ -72,6 +74,7 @@ func (s *State) ToSyslogConfig() syslog.Config {
 	}
 }
 
+// ToStressConfig projects the GUI state into the continuous send configuration.
 func (s *State) ToStressConfig() stress.ContinuousSendConfig {
 	return stress.ContinuousSendConfig{
 		Address:        s.Address,

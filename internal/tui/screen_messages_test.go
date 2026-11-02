@@ -39,7 +39,7 @@ func TestMessagesAddDelete(t *testing.T) {
 	}
 
 	_, _ = m.Update(enter())
-	for _, r := range []rune("hero") {
+	for _, r := range "hero" {
 		_, _ = m.Update(mkey(r))
 	}
 	_, _ = m.Update(enter())
@@ -75,7 +75,7 @@ func TestMessagesEdit(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		_, _ = m.Update(tea.KeyMsg{Type: tea.KeyBackspace})
 	}
-	for _, r := range []rune("edit") {
+	for _, r := range "edit" {
 		_, _ = m.Update(mkey(r))
 	}
 	if got := m.editBuf.Value(); got != "edit" {
@@ -143,18 +143,18 @@ func TestMessagesSyncState(t *testing.T) {
 	_, _ = m.Update(tab())
 	_, _ = m.Update(mkey('h'))
 	_, _ = m.Update(tab())
-	for _, r := range []rune("host") {
+	for _, r := range "host" {
 		_, _ = m.Update(mkey(r))
 	}
 	_, _ = m.Update(tab())
-	for _, r := range []rune("app") {
+	for _, r := range "app" {
 		_, _ = m.Update(mkey(r))
 	}
 	_, _ = m.Update(tab())
 	_, _ = m.Update(mkey('l'))
 	_, _ = m.Update(tab())
 	_, _ = m.Update(mkey('a'))
-	for _, r := range []rune("msg") {
+	for _, r := range "msg" {
 		_, _ = m.Update(mkey(r))
 	}
 	_, _ = m.Update(enter())

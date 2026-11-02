@@ -34,6 +34,7 @@ type AppState struct {
 	StressMaxMsgs    int    `json:"stressMaxMessages"`
 }
 
+// DefaultState returns the app state seeded with sensible defaults.
 func DefaultState() *AppState {
 	return &AppState{
 		Port:             "514",

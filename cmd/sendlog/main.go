@@ -1,3 +1,4 @@
+// Command sendlog unifies the syslog sender CLI, TUI and GTK GUI in one binary.
 package main
 
 import (

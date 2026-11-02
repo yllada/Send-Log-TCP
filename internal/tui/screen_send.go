@@ -31,6 +31,7 @@ type sendResultMsg struct {
 	resp syslog.Response
 }
 
+// NewSendScreen builds the screen for sending the composed message list to the target.
 func NewSendScreen(state *AppState) tea.Model {
 	return &sendScreen{
 		state:        state,
@@ -194,7 +195,9 @@ func (s *sendScreen) View() string {
 		b.WriteString(okText(fmt.Sprintf("sent (%d):", len(s.sent))))
 		b.WriteString("\n")
 		for _, msg := range s.sent {
-			b.WriteString("  " + msg + "\n")
+			b.WriteString("  ")
+			b.WriteString(msg)
+			b.WriteString("\n")
 		}
 	}
 	if len(s.errors) > 0 && !s.sending {
@@ -204,7 +207,9 @@ func (s *sendScreen) View() string {
 		b.WriteString(errText(fmt.Sprintf("failed (%d):", len(s.errors))))
 		b.WriteString("\n")
 		for _, e := range s.errors {
-			b.WriteString("  " + e + "\n")
+			b.WriteString("  ")
+			b.WriteString(e)
+			b.WriteString("\n")
 		}
 	}
 	if s.sent != nil {

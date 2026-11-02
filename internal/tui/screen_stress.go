@@ -24,7 +24,7 @@ type stressScreen struct {
 	message   textinput.Model
 	rate      textinput.Model
 	duration  textinput.Model
-	max       textinput.Model
+	maxInput  textinput.Model
 	runner    stressRunner
 	errMsg    string
 	running   bool
@@ -34,6 +34,7 @@ type stressScreen struct {
 	failed    bool
 }
 
+// NewStressScreen builds the screen for running and monitoring the continuous send engine.
 func NewStressScreen(state *AppState) tea.Model {
 	message := textinput.New()
 	message.Width = 60
@@ -42,14 +43,14 @@ func NewStressScreen(state *AppState) tea.Model {
 	rate.Width = 8
 	duration := textinput.New()
 	duration.Width = 8
-	max := textinput.New()
-	max.Width = 8
+	maxInput := textinput.New()
+	maxInput.Width = 8
 	return &stressScreen{
 		state:    state,
 		message:  message,
 		rate:     rate,
 		duration: duration,
-		max:      max,
+		maxInput: maxInput,
 		runner:   stress.NewEngine(),
 	}
 }
@@ -65,7 +66,7 @@ func (s *stressScreen) inputAt(i int) *textinput.Model {
 	case 2:
 		return &s.duration
 	case 3:
-		return &s.max
+		return &s.maxInput
 	default:
 		return nil
 	}
@@ -91,7 +92,7 @@ func (s *stressScreen) syncState() {
 		s.state.StressMessagesPS = v
 	}
 	s.state.StressDuration = atoiField(s.duration.Value())
-	s.state.StressMaxMsgs = atoiField(s.max.Value())
+	s.state.StressMaxMsgs = atoiField(s.maxInput.Value())
 }
 
 func atoiField(v string) int {
@@ -134,7 +135,7 @@ func (s *stressScreen) start() tea.Cmd {
 	cfg.Message = msg
 	cfg.MessagesPerSec = rate
 	cfg.Duration = atoiField(s.duration.Value())
-	cfg.MaxMessages = atoiField(s.max.Value())
+	cfg.MaxMessages = atoiField(s.maxInput.Value())
 	runner := s.runner
 	return func() tea.Msg {
 		if err := runner.Start(cfg, nil); err != nil {
@@ -297,13 +298,17 @@ func (s *stressScreen) View() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(labelStyle("Message:  ") + s.message.View())
+	b.WriteString(labelStyle("Message:  "))
+	b.WriteString(s.message.View())
 	b.WriteString("\n")
-	b.WriteString(labelStyle("Rate:     ") + s.rate.View())
+	b.WriteString(labelStyle("Rate:     "))
+	b.WriteString(s.rate.View())
 	b.WriteString("  messages per second\n")
-	b.WriteString(labelStyle("Duration: ") + s.duration.View())
+	b.WriteString(labelStyle("Duration: "))
+	b.WriteString(s.duration.View())
 	b.WriteString("  seconds (blank = until stopped)\n")
-	b.WriteString(labelStyle("Max:      ") + s.max.View())
+	b.WriteString(labelStyle("Max:      "))
+	b.WriteString(s.maxInput.View())
 	b.WriteString("  messages (blank = unlimited)\n")
 	b.WriteString("\n")
 	b.WriteString(labelStyle("         "))

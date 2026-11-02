@@ -26,6 +26,7 @@ type connectionScreen struct {
 	errMsg     string
 }
 
+// NewConnectionScreen builds the screen for editing the target server and transport settings.
 func NewConnectionScreen(state *AppState) tea.Model {
 	address := textinput.New()
 	port := textinput.New()
@@ -197,25 +198,34 @@ func (s *connectionScreen) View() string {
 	var b strings.Builder
 	b.WriteString(titleStyle("Connection"))
 	b.WriteString("\n\n")
-	b.WriteString(labelStyle("Host:     ") + s.address.View())
+	b.WriteString(labelStyle("Host:     "))
+	b.WriteString(s.address.View())
 	b.WriteString("\n")
-	b.WriteString(labelStyle("Port:     ") + s.port.View())
+	b.WriteString(labelStyle("Port:     "))
+	b.WriteString(s.port.View())
 	b.WriteString("\n")
-	b.WriteString(labelStyle("Protocol: ") + s.protocol.View())
+	b.WriteString(labelStyle("Protocol: "))
+	b.WriteString(s.protocol.View())
 	b.WriteString("\n")
 	if s.state.Protocol == "tcp" {
-		b.WriteString(labelStyle("Framing:  ") + s.framing.View())
+		b.WriteString(labelStyle("Framing:  "))
+		b.WriteString(s.framing.View())
 		b.WriteString("\n")
 	}
-	b.WriteString(labelStyle("TLS:      ") + s.tls.View())
+	b.WriteString(labelStyle("TLS:      "))
+	b.WriteString(s.tls.View())
 	b.WriteString("\n")
-	b.WriteString(labelStyle("Verify:   ") + s.validate.View())
+	b.WriteString(labelStyle("Verify:   "))
+	b.WriteString(s.validate.View())
 	b.WriteString("\n")
-	b.WriteString(labelStyle("CA cert:  ") + s.caCert.View())
+	b.WriteString(labelStyle("CA cert:  "))
+	b.WriteString(s.caCert.View())
 	b.WriteString("\n")
-	b.WriteString(labelStyle("Cert:     ") + s.clientCert.View())
+	b.WriteString(labelStyle("Cert:     "))
+	b.WriteString(s.clientCert.View())
 	b.WriteString("\n")
-	b.WriteString(labelStyle("Key:      ") + s.clientKey.View())
+	b.WriteString(labelStyle("Key:      "))
+	b.WriteString(s.clientKey.View())
 	b.WriteString("\n")
 	if s.errMsg != "" {
 		b.WriteString("\n")

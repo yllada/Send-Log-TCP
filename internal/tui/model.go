@@ -1,3 +1,4 @@
+// Package tui implements the Bubble Tea terminal front end over the shared syslog domain state.
 package tui
 
 import (
@@ -10,6 +11,7 @@ import (
 // the shared state; the root calls it before closing so nothing is lost.
 type stateSyncer interface{ syncState() }
 
+// Model is the root Bubble Tea model that owns the shared app state and delegates to the active screen.
 type Model struct {
 	state    *AppState
 	width    int
@@ -18,6 +20,7 @@ type Model struct {
 	current  tea.Model
 }
 
+// New builds the root model seeded with default state.
 func New() *Model {
 	return &Model{state: DefaultState()}
 }
@@ -33,8 +36,10 @@ var screens = []struct {
 	{"Stress", NewStressScreen},
 }
 
+// Init implements tea.Model; the root model needs no startup command.
 func (m *Model) Init() tea.Cmd { return nil }
 
+// Update handles root-level keys (size, quit, back) and forwards the rest to the active screen.
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if msg, ok := msg.(tea.WindowSizeMsg); ok {
 		m.width = msg.Width
@@ -75,6 +80,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// View renders the active screen, or the screen picker when none is open.
 func (m *Model) View() string {
 	if m.current != nil {
 		return m.current.View()

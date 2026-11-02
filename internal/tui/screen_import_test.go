@@ -27,7 +27,7 @@ func writeImportFile(t *testing.T, dir, name, content string) string {
 }
 
 func typePath(s *importScreen, p string) {
-	for _, r := range []rune(p) {
+	for _, r := range p {
 		s.path, _ = s.path.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
 	}
 }

@@ -166,7 +166,7 @@ func (a *App) onSend() {
 	a.setStatus("…", "", fmt.Sprintf("Sending %d message(s)…", len(msgs)))
 	go func() {
 		var resp syslog.Response
-		onProgress := func(current, total int, percent float64) {
+		onProgress := func(_, _ int, percent float64) {
 			frac := percent / 100
 			glib.IdleAdd(func() { a.statusBar.SetFraction(frac) })
 		}

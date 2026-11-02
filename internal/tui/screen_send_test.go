@@ -41,7 +41,7 @@ func updateScreen(t *testing.T, s *sendScreen, msg tea.Msg) *sendScreen {
 	return screen
 }
 
-func runCmd(t *testing.T, s *sendScreen, cmd tea.Cmd) tea.Msg {
+func runCmd(t *testing.T, _ *sendScreen, cmd tea.Cmd) tea.Msg {
 	t.Helper()
 	if cmd == nil {
 		return nil

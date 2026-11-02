@@ -1,5 +1,6 @@
 //go:build linux && cgo
 
+// Package gui builds the GTK4 desktop front end over the shared syslog domain.
 package gui
 
 import (
@@ -173,7 +174,6 @@ func (a *App) buildConnectionFrame() *gtk.Frame {
 	a.connToggle.SetHExpand(true)
 	a.connToggle.ConnectToggled(func() { a.onToggleConnect() })
 	grid.Attach(a.connToggle, 0, row, 3, 1)
-	row++
 
 	a.updateTLSRows()
 	a.updateFramingRows()
@@ -250,7 +250,6 @@ func (a *App) buildMessageFrame() *gtk.Frame {
 	a.sendBtn.ConnectClicked(func() { a.onSend() })
 	a.sendBtn.SetSensitive(false)
 	grid.Attach(a.sendBtn, 0, row, 3, 1)
-	row++
 
 	a.applyDefaultsToWidgets()
 	frame.SetChild(grid)
@@ -303,7 +302,6 @@ func (a *App) buildStressFrame() *gtk.Frame {
 	a.stopBtn.SetSensitive(false)
 	btnRow.Append(a.stopBtn)
 	grid.Attach(btnRow, 0, row, 3, 1)
-	row++
 
 	frame.SetChild(grid)
 	return frame

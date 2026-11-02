@@ -19,7 +19,7 @@ type fakeRunner struct {
 	afterStop  stress.ContinuousStats
 }
 
-func (f *fakeRunner) Start(config stress.ContinuousSendConfig, onStats func(stress.ContinuousStats)) error {
+func (f *fakeRunner) Start(config stress.ContinuousSendConfig, _ func(stress.ContinuousStats)) error {
 	if f.startErr != nil {
 		return f.startErr
 	}

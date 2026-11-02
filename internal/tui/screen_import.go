@@ -29,6 +29,7 @@ type importScreen struct {
 	doneText string
 }
 
+// NewImportScreen builds the screen for importing messages from a log file.
 func NewImportScreen(state *AppState) tea.Model {
 	path := textinput.New()
 	path.Width = 50
@@ -136,7 +137,8 @@ func (i *importScreen) View() string {
 	var b strings.Builder
 	b.WriteString(titleStyle("Import File"))
 	b.WriteString("\n\n")
-	b.WriteString(labelStyle("Path: ") + i.path.View())
+	b.WriteString(labelStyle("Path: "))
+	b.WriteString(i.path.View())
 	b.WriteString("\n\n")
 	switch i.mode {
 	case modeReady:
