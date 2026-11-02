@@ -1,3 +1,4 @@
+// Package stress implements the continuous send engine used for load testing the syslog connection.
 package stress
 
 import (

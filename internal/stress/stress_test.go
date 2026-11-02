@@ -60,7 +60,11 @@ func TestEngineSendsOverInjectedConn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer server.Close()
+	defer func() {
+		if err := server.Close(); err != nil {
+			t.Log(err)
+		}
+	}()
 	host, port, err := net.SplitHostPort(server.Addr().String())
 	if err != nil {
 		t.Fatal(err)
@@ -70,7 +74,11 @@ func TestEngineSendsOverInjectedConn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer injected.Close()
+	defer func() {
+		if err := injected.Close(); err != nil {
+			t.Log(err)
+		}
+	}()
 
 	go func() {
 		conn, err := server.Accept()
@@ -78,7 +86,11 @@ func TestEngineSendsOverInjectedConn(t *testing.T) {
 			t.Errorf("accept: %v", err)
 			return
 		}
-		defer conn.Close()
+		defer func() {
+			if err := conn.Close(); err != nil {
+				t.Log(err)
+			}
+		}()
 		for i, f := range readFrames(t, conn, 3) {
 			if !strings.HasPrefix(f, "<14>") {
 				t.Errorf("frame %d missing PRI: %q", i, f)
@@ -120,7 +132,11 @@ func TestEngineDialsAndClosesOwnConn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer server.Close()
+	defer func() {
+		if err := server.Close(); err != nil {
+			t.Log(err)
+		}
+	}()
 	host, port, err := net.SplitHostPort(server.Addr().String())
 	if err != nil {
 		t.Fatal(err)
@@ -134,7 +150,11 @@ func TestEngineDialsAndClosesOwnConn(t *testing.T) {
 			return
 		}
 		dialed <- struct{}{}
-		defer conn.Close()
+		defer func() {
+			if err := conn.Close(); err != nil {
+				t.Log(err)
+			}
+		}()
 	}()
 
 	eng := stress.NewEngine()
