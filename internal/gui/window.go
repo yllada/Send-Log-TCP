@@ -66,6 +66,7 @@ type App struct {
 // Run starts the GTK main loop and blocks until the window is closed.
 func Run() {
 	adw.Init()
+	registerAppIcon()
 	a := &App{state: DefaultState()}
 	a.engine = stress.NewEngine()
 	a.app = adw.NewApplication(appID, gio.ApplicationFlagsNone)
@@ -89,6 +90,7 @@ func (a *App) buildWindow() {
 	hb := adw.NewHeaderBar()
 	hb.SetTitleWidget(adw.NewWindowTitle("SendLog", "syslog sender"))
 	a.win.SetTitlebar(hb)
+	a.win.SetIconName(appIconName)
 
 	overlay := adw.NewToastOverlay()
 	a.win.SetChild(overlay)

@@ -199,12 +199,97 @@ jobs:
           if-no-files-found: error
 
   # ===========================================================================
+  # Job: Build Linux .deb with the GTK4 GUI
+  # ===========================================================================
+  deb:
+    name: Build sendlog .deb
+    runs-on: ubuntu-latest
+    needs: prepare
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install GTK4 and libadwaita
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-4-dev libadwaita-1-dev pkg-config dpkg-dev
+
+      - name: Build GUI binary
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build \
+            -ldflags "-s -w -X Sendlog-Syslog/internal/cli.Version=${VERSION}" \
+            -o sendlog \
+            ./cmd/sendlog
+          ./sendlog version
+
+      - name: Package .deb
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          VER_NUM="${VERSION#v}"
+          ARCH="amd64"
+          PKG="sendlog"
+          STAGE="deb-build/${PKG}_${VER_NUM}_${ARCH}"
+
+          # Derive the real GTK4 runtime packages from the binary's shared
+          # library dependencies so the control file always matches the build.
+          DEPS=$(objdump -p sendlog | awk '/NEEDED/{print $2}' \
+            | grep -E '^lib(gtk-4|adwaita-1|glib-2|gobject-2|gio-2|gdk_pixbuf|pango|cairo|gmodule)' \
+            | sort -u \
+            | while read -r lib; do
+                dpkg -S "/usr/lib/x86_64-linux-gnu/${lib}" 2>/dev/null \
+                  | head -1 | cut -d: -f1
+              done | grep -v -- '-dev$' | sort -u | paste -sd, - | sed 's/,/, /g')
+          echo "Depends: ${DEPS}"
+
+          mkdir -p \
+            "${STAGE}/DEBIAN" \
+            "${STAGE}/usr/bin" \
+            "${STAGE}/usr/share/applications"
+          cp sendlog "${STAGE}/usr/bin/sendlog"
+          cp assets/sendlog.desktop "${STAGE}/usr/share/applications/sendlog.desktop"
+          cp -r assets/icons "${STAGE}/usr/share/icons"
+
+          printf '%s\n' \
+            "Package: ${PKG}" \
+            "Version: ${VER_NUM}" \
+            "Section: utils" \
+            "Priority: optional" \
+            "Architecture: ${ARCH}" \
+            "Maintainer: SendLog <maintainers@sendlog.dev>" \
+            "Description: Send syslog messages to a remote server" \
+            " Send syslog messages (TCP/UDP, TLS, RFC 3164/5424, replay) with a" \
+            " GTK4 desktop application, a terminal UI, and a CLI for automation." \
+            "Homepage: https://github.com/${GITHUB_REPOSITORY#*/}" \
+            "Depends: ${DEPS}" \
+            > "${STAGE}/DEBIAN/control"
+          cat "${STAGE}/DEBIAN/control"
+
+          dpkg-deb --build --root-owner-group "${STAGE}"
+          mv "${STAGE}.deb" "${PKG}_${VER_NUM}_${ARCH}.deb"
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sendlog-linux-amd64-deb
+          path: sendlog_*.deb
+          if-no-files-found: error
+
+  # ===========================================================================
   # Job: Create GitHub Release with all binaries
   # ===========================================================================
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [prepare, build]
+    needs: [prepare, build, deb]
     if: github.event_name == 'push'
 
     steps:
@@ -241,16 +326,20 @@ jobs:
 
             | Platform | File |
             |--------|------|
-            | Windows (64-bit) | sendlog-windows-amd64.exe |
-            | Linux (64-bit) | sendlog-linux-amd64 |
+            | Windows (64-bit) | sendlog-windows-amd64.exe (icon embedded) |
+            | Linux (64-bit, TUI/CLI) | sendlog-linux-amd64 |
+            | Linux (64-bit, GUI .deb) | sendlog-*_amd64.deb |
             | macOS (Intel) | sendlog-darwin-amd64 |
             | macOS (Apple Silicon) | sendlog-darwin-arm64 |
 
             ### 🚀 Quick Start
 
             ```bash
-            # Download the binary for your platform, then:
-            ./sendlog                  # interactive TUI
+            # Windows / Linux (static binary):
+            ./sendlog                  # GUI on Linux with a display, TUI elsewhere
             ./sendlog send -a host -p 514 -m "hello"   # send a message
             ./sendlog help             # full flag reference
+
+            # Linux (.deb installs the GUI app):
+            dpkg -i sendlog-<version>_amd64.deb
             ```

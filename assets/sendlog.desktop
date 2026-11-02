@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=SendLog
+GenericName=Syslog Sender
+Comment=Send syslog messages to a remote server
+Exec=sendlog
+Icon=sendlog-app
+Terminal=false
+Categories=Network;System;
+Keywords=syslog;network;testing;
+StartupNotify=true
