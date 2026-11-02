@@ -1,3 +1,4 @@
+// Package cli implements the sendlog command-line subcommands.
 package cli
 
 import (
@@ -11,6 +12,7 @@ import (
 	"Sendlog-Syslog/internal/syslog"
 )
 
+// Version is the build version, set via -ldflags at release time.
 var Version = "dev"
 
 const usage = `sendlog — send syslog messages to a remote server
@@ -127,14 +129,28 @@ func (m *multiFlag) Set(v string) error {
 	return nil
 }
 
-func connConfig(c *connFlags, m *msgFlags) syslog.Config {
+func facilitySeverity(m *msgFlags) (uint8, uint8, error) {
+	if m.facility < 0 || m.facility > 23 {
+		return 0, 0, fmt.Errorf("facility must be 0-23 (got %d)", m.facility)
+	}
+	if m.severity < 0 || m.severity > 7 {
+		return 0, 0, fmt.Errorf("severity must be 0-7 (got %d)", m.severity)
+	}
+	return uint8(m.facility), uint8(m.severity), nil
+}
+
+func connConfig(c *connFlags, m *msgFlags) (syslog.Config, error) {
+	f, s, err := facilitySeverity(m)
+	if err != nil {
+		return syslog.Config{}, err
+	}
 	return syslog.Config{
 		Address:        c.address,
 		Port:           c.port,
 		Protocol:       strings.ToLower(c.protocol),
 		Method:         framing.Method(c.framing),
-		Facility:       uint8(m.facility),
-		Severity:       uint8(m.severity),
+		Facility:       f,
+		Severity:       s,
 		Hostname:       m.hostname,
 		Appname:        m.appname,
 		MessageFormat:  m.messageFormat(),
@@ -143,7 +159,7 @@ func connConfig(c *connFlags, m *msgFlags) syslog.Config {
 		CACertPath:     c.ca,
 		ClientCertPath: c.cert,
 		ClientKeyPath:  c.key,
-	}
+	}, nil
 }
 
 func emitJSON(v interface{}) {
@@ -155,4 +171,5 @@ func emitJSON(v interface{}) {
 	fmt.Println(string(data))
 }
 
+// Usage returns the command-line help text.
 func Usage() string { return usage }

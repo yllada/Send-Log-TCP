@@ -21,6 +21,7 @@ type sendResult struct {
 	Errors []string `json:"errors,omitempty"`
 }
 
+// RunSend sends the flagged messages and reports the result.
 func RunSend(args []string) error {
 	fs := flag.NewFlagSet("send", flag.ExitOnError)
 	var c connFlags
@@ -29,7 +30,10 @@ func RunSend(args []string) error {
 	m.register(fs)
 	_ = fs.Parse(args)
 
-	config := connConfig(&c, &m)
+	config, err := connConfig(&c, &m)
+	if err != nil {
+		return err
+	}
 
 	if m.file != "" {
 		result, err := logimport.Import(m.file)
@@ -76,6 +80,7 @@ func RunSend(args []string) error {
 	return nil
 }
 
+// RunConnect tests a syslog connection and reports the negotiated protocol.
 func RunConnect(args []string) error {
 	fs := flag.NewFlagSet("connect", flag.ExitOnError)
 	var c connFlags
@@ -101,6 +106,7 @@ func RunConnect(args []string) error {
 	return nil
 }
 
+// RunStress starts a continuous send and blocks until stopped.
 func RunStress(args []string) error {
 	fs := flag.NewFlagSet("stress", flag.ExitOnError)
 	var c connFlags
@@ -117,14 +123,19 @@ func RunStress(args []string) error {
 		base = m.messages[0]
 	}
 
+	facility, severity, err := facilitySeverity(&m)
+	if err != nil {
+		return err
+	}
+
 	config := stress.ContinuousSendConfig{
 		Address:        c.address,
 		Port:           c.port,
 		Protocol:       strings.ToLower(c.protocol),
 		Message:        base,
 		Method:         framing.Method(c.framing),
-		Facility:       uint8(m.facility),
-		Severity:       uint8(m.severity),
+		Facility:       facility,
+		Severity:       severity,
 		Hostname:       m.hostname,
 		Appname:        m.appname,
 		MessageFormat:  m.messageFormat(),

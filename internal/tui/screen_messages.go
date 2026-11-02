@@ -28,6 +28,7 @@ type messagesScreen struct {
 	editBuf  textinput.Model
 }
 
+// NewMessagesScreen builds the screen for composing and managing the message list.
 func NewMessagesScreen(state *AppState) tea.Model {
 	hostname := textinput.New()
 	appname := textinput.New()
@@ -91,10 +92,10 @@ func (m *messagesScreen) syncState() {
 		m.commitEdit()
 	}
 	m.state.Format = m.format.Value()
-	if f, err := strconv.Atoi(m.facility.Value()); err == nil {
+	if f, err := strconv.Atoi(m.facility.Value()); err == nil && f >= 0 && f <= 23 {
 		m.state.Facility = uint8(f)
 	}
-	if sv, err := strconv.Atoi(m.severity.Value()); err == nil {
+	if sv, err := strconv.Atoi(m.severity.Value()); err == nil && sv >= 0 && sv <= 7 {
 		m.state.Severity = uint8(sv)
 	}
 	m.state.Hostname = m.hostname.Value()
@@ -263,20 +264,27 @@ func (m *messagesScreen) View() string {
 	var b strings.Builder
 	b.WriteString(titleStyle("Messages"))
 	b.WriteString("\n\n")
-	b.WriteString(labelStyle("Format:   ") + m.format.View())
+	b.WriteString(labelStyle("Format:   "))
+	b.WriteString(m.format.View())
 	b.WriteString("\n")
-	b.WriteString(labelStyle("Facility: ") + m.facility.View())
+	b.WriteString(labelStyle("Facility: "))
+	b.WriteString(m.facility.View())
 	b.WriteString("\n")
-	b.WriteString(labelStyle("Severity: ") + m.severity.View())
+	b.WriteString(labelStyle("Severity: "))
+	b.WriteString(m.severity.View())
 	b.WriteString("\n")
-	b.WriteString(labelStyle("Hostname: ") + m.hostname.View())
+	b.WriteString(labelStyle("Hostname: "))
+	b.WriteString(m.hostname.View())
 	b.WriteString("\n")
-	b.WriteString(labelStyle("Appname:  ") + m.appname.View())
+	b.WriteString(labelStyle("Appname:  "))
+	b.WriteString(m.appname.View())
 	b.WriteString("\n")
-	b.WriteString(labelStyle("Raw PRI:  ") + m.raw.View())
+	b.WriteString(labelStyle("Raw PRI:  "))
+	b.WriteString(m.raw.View())
 	b.WriteString("\n\n")
 	if m.editing {
-		b.WriteString(labelStyle("edit: ") + m.editBuf.View())
+		b.WriteString(labelStyle("edit: "))
+		b.WriteString(m.editBuf.View())
 	} else if len(m.messages) == 0 {
 		b.WriteString(dim.Render("  (no messages — enter to add)"))
 	} else {
