@@ -1,14 +1,15 @@
 # =============================================================================
-# Release Pipeline - Generación de Releases Multiplataforma
+# Release Pipeline - Builds the sendlog binary for multiple platforms
 # =============================================================================
-# Este workflow se ejecuta cuando se crea un tag de versión (v*).
-# Genera builds para Windows, Linux y macOS, con changelog automático.
+# Runs when a version tag is pushed (v*).
+# Builds a static, dependency-free binary for Windows, Linux and macOS and
+# publishes it as a GitHub Release with an auto-generated changelog.
 #
-# Uso:
-#   git tag v1.4.0
-#   git push origin v1.4.0
+# Usage:
+#   git tag v1.9.0
+#   git push origin v1.9.0
 #
-# Conventional Commits para changelog automático:
+# Conventional Commits power the changelog:
 #   feat: nueva funcionalidad
 #   fix: corrección de bug
 #   docs: documentación
@@ -16,9 +17,8 @@
 #   refactor: refactorización
 #   chore: mantenimiento
 #
-# Documentación:
+# Documentation:
 #   - GitHub Releases: https://docs.github.com/en/repositories/releasing-projects-on-github
-#   - Wails Build: https://wails.io/docs/reference/cli#build
 # =============================================================================
 
 name: Release
@@ -35,19 +35,17 @@ on:
         required: true
         type: string
 
-# Permisos necesarios para crear releases
+# Permissions needed to create releases
 permissions:
   contents: write
-  
+
 env:
   GO_VERSION: '1.25'
-  NODE_VERSION: '20'
-  PNPM_VERSION: '10'
-  APP_NAME: 'Sendlog-Syslog'
+  APP_NAME: 'sendlog'
 
 jobs:
   # ===========================================================================
-  # Job: Preparar Release
+  # Job: Prepare Release
   # ===========================================================================
   prepare:
     name: Prepare Release
@@ -57,13 +55,12 @@ jobs:
       version_short: ${{ steps.version.outputs.version_short }}
       is_prerelease: ${{ steps.version.outputs.is_prerelease }}
       changelog: ${{ steps.changelog.outputs.changelog }}
-      compare_url: ${{ steps.changelog.outputs.compare_url }}
-      
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0  # Necesario para changelog
+          fetch-depth: 0  # needed for the changelog
 
       - name: Get version info
         id: version
@@ -73,44 +70,34 @@ jobs:
           else
             VERSION="${GITHUB_REF#refs/tags/}"
           fi
-          
+
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "version_short=${VERSION#v}" >> $GITHUB_OUTPUT
-          
-          # Detectar si es prerelease
+
+          # Detect prerelease
           if [[ "$VERSION" == *"-"* ]]; then
             echo "is_prerelease=true" >> $GITHUB_OUTPUT
           else
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
           fi
-          
+
           echo "📦 Version: ${VERSION}"
 
       - name: Generate changelog
         id: changelog
         run: |
-          # Obtener el tag anterior
+          # Get the previous tag
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          
+
           if [ -z "$PREVIOUS_TAG" ]; then
             echo "No previous tag found, using all commits"
             COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges HEAD)
           else
-            echo "Previous tag: $PREVIOUS_TAG"
+            echo "Previous tag: ${PREVIOUS_TAG}"
             COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges ${PREVIOUS_TAG}..HEAD)
           fi
-          
-          # El enlace de comparacion se construye aqui, que es donde se conoce
-          # PREVIOUS_TAG. Sin tag anterior no hay nada que comparar, asi que se
-          # enlaza la lista de commits en lugar de emitir una URL sin la
-          # referencia izquierda.
-          if [ -z "$PREVIOUS_TAG" ]; then
-            echo "compare_url=https://github.com/${GITHUB_REPOSITORY}/commits/${{ steps.version.outputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "compare_url=https://github.com/${GITHUB_REPOSITORY}/compare/${PREVIOUS_TAG}...${{ steps.version.outputs.version }}" >> $GITHUB_OUTPUT
-          fi
-          
-          # Categorizar commits por tipo (Conventional Commits)
+
+          # Categorize commits by type (Conventional Commits)
           FEATURES=$(echo "$COMMITS" | grep -E "^- feat" || true)
           FIXES=$(echo "$COMMITS" | grep -E "^- fix" || true)
           PERF=$(echo "$COMMITS" | grep -E "^- perf" || true)
@@ -118,242 +105,104 @@ jobs:
           REFACTOR=$(echo "$COMMITS" | grep -E "^- refactor" || true)
           CHORE=$(echo "$COMMITS" | grep -E "^- chore" || true)
           OTHER=$(echo "$COMMITS" | grep -vE "^- (feat|fix|perf|docs|refactor|chore)" || true)
-          
-          # Construir changelog
+
           CHANGELOG=""
-          
+
           if [ -n "$FEATURES" ]; then
             CHANGELOG="${CHANGELOG}### ✨ New Features\n${FEATURES}\n\n"
           fi
-          
+
           if [ -n "$FIXES" ]; then
             CHANGELOG="${CHANGELOG}### 🐛 Bug Fixes\n${FIXES}\n\n"
           fi
-          
+
           if [ -n "$PERF" ]; then
             CHANGELOG="${CHANGELOG}### ⚡ Performance\n${PERF}\n\n"
           fi
-          
+
           if [ -n "$REFACTOR" ]; then
             CHANGELOG="${CHANGELOG}### ♻️ Refactoring\n${REFACTOR}\n\n"
           fi
-          
+
           if [ -n "$DOCS" ]; then
             CHANGELOG="${CHANGELOG}### 📚 Documentation\n${DOCS}\n\n"
           fi
-          
+
           if [ -n "$CHORE" ]; then
             CHANGELOG="${CHANGELOG}### 🔧 Maintenance\n${CHORE}\n\n"
           fi
-          
+
           if [ -n "$OTHER" ]; then
             CHANGELOG="${CHANGELOG}### 📝 Other Changes\n${OTHER}\n\n"
           fi
-          
-          # Si no hay commits categorizados, listar todos
+
+          # If there are no categorized commits, list them all
           if [ -z "$CHANGELOG" ]; then
             CHANGELOG="### 📝 Changes\n${COMMITS}\n"
           fi
-          
-          # Guardar changelog (escapar para multiline)
+
+          # Store the changelog (escaped for multiline)
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo -e "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+          echo "=== CHANGELOG GENERATED ==="
+          echo -e "$CHANGELOG"
+
   # ===========================================================================
-  # Job: Build Matrix (Todas las plataformas en paralelo)
+  # Job: Build sendlog for all platforms (static, no CGO)
   # ===========================================================================
   build:
-    name: Build ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
+    name: Build sendlog
+    runs-on: ubuntu-latest
     needs: prepare
-    
     strategy:
-      fail-fast: false
       matrix:
         include:
-          # Windows AMD64
-          - name: Windows
-            os: windows-latest
-            platform: windows/amd64
-            tags: ""
-            artifact: Sendlog-Syslog.exe
-            output: Sendlog-Syslog-windows-amd64.exe
-            
-          # Linux AMD64
-          - name: Linux
-            os: ubuntu-latest
-            platform: linux/amd64
-            tags: webkit2_41
-            artifact: Sendlog-Syslog
-            output: Sendlog-Syslog-linux-amd64
-            
-          # macOS Universal (Intel + Apple Silicon)
-          - name: macOS
-            os: macos-latest
-            platform: darwin/universal
-            tags: ""
-            artifact: Sendlog-Syslog.app
-            output: Sendlog-Syslog-macos-universal.app
-            is_app_bundle: true
+          - goos: windows
+            goarch: amd64
+            bin_suffix: .exe
+          - goos: linux
+            goarch: amd64
+            bin_suffix: ""
+          - goos: darwin
+            goarch: amd64
+            bin_suffix: ""
+          - goos: darwin
+            goarch: arm64
+            bin_suffix: ""
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      # Linux: Instalar dependencias GTK/WebKit
-      - name: Install Linux dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libgtk-3-dev \
-            libwebkit2gtk-4.1-dev \
-            build-essential \
-            pkg-config \
-            libappindicator3-dev \
-            imagemagick \
-            wget \
-            file \
-            libfuse2
-
-      - name: Setup Go
+      - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v5
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: frontend/pnpm-lock.yaml
-
-      - name: Install frontend dependencies
-        working-directory: ./frontend
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
-
-      - name: Build application
+      - name: Build
         run: |
-          if [ -n "${{ matrix.tags }}" ]; then
-            wails build -platform ${{ matrix.platform }} -tags ${{ matrix.tags }} -ldflags "-X main.Version=${{ needs.prepare.outputs.version }}"
-          else
-            wails build -platform ${{ matrix.platform }} -ldflags "-X main.Version=${{ needs.prepare.outputs.version }}"
-          fi
-        shell: bash
+          VERSION="${{ needs.prepare.outputs.version }}"
+          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build \
+            -ldflags "-s -w -X Sendlog-Syslog/internal/cli.Version=${VERSION}" \
+            -o bin/${{ env.APP_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.bin_suffix }} \
+            ./cmd/sendlog
+          chmod +x bin/${{ env.APP_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.bin_suffix }} 2>/dev/null || true
 
-      # Renombrar y preparar artefacto
-      - name: Prepare artifact (Unix)
-        if: runner.os != 'Windows' && !matrix.is_app_bundle
-        run: |
-          cp "build/bin/${{ matrix.artifact }}" "build/bin/${{ matrix.output }}"
-          chmod +x "build/bin/${{ matrix.output }}"
-
-      # Linux: Crear paquetes DEB y AppImage
-      - name: Create Linux packages
-        if: runner.os == 'Linux'
-        run: |
-          VERSION="${{ needs.prepare.outputs.version_short }}"
-          
-          # Crear paquete DEB
-          echo "📦 Creating DEB package..."
-          chmod +x ./scripts/package-deb.sh
-          ./scripts/package-deb.sh "$VERSION"
-          
-          # Crear AppImage
-          echo "📦 Creating AppImage..."
-          chmod +x ./scripts/package-appimage.sh
-          ./scripts/package-appimage.sh "$VERSION"
-          
-          # Listar artefactos generados
-          echo "📋 Generated packages:"
-          ls -la build/bin/
-          
-      - name: Prepare artifact (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          mv "build/bin/${{ matrix.artifact }}" "build/bin/${{ matrix.output }}"
-
-      - name: Prepare macOS app bundle
-        if: matrix.is_app_bundle
-        run: |
-          cd build/bin
-          # Crear zip del .app bundle
-          zip -r "${{ matrix.output }}.zip" "${{ matrix.artifact }}"
-          mv "${{ matrix.output }}.zip" "../${{ matrix.output }}.zip"
-        shell: bash
-
-      # Generar checksum
-      - name: Generate checksum (Unix)
-        if: runner.os != 'Windows' && !matrix.is_app_bundle
-        run: |
-          cd build/bin
-          # Checksum del binario
-          sha256sum "${{ matrix.output }}" > "${{ matrix.output }}.sha256"
-          
-          # Checksums de paquetes Linux.
-          #
-          # No usar [ -f "*.deb" ]: las comillas impiden el globbing, asi que esa
-          # condicion pregunta por un fichero llamado literalmente "*.deb" y
-          # nunca es cierta. El DEB y el AppImage se publicaron sin checksum
-          # desde que se escribio este workflow, mientras las notas del release
-          # pedian verificarlos con sha256sum.
-          #
-          # Al iterar el glob directamente, si no hay coincidencias el patron
-          # queda sin expandir y el guard -f lo descarta.
-          for f in *.deb *.AppImage; do
-            [ -f "$f" ] || continue
-            sha256sum "$f" > "$f.sha256"
-          done
-          
-      - name: Generate checksum (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          cd build/bin
-          $hash = (Get-FileHash "${{ matrix.output }}" -Algorithm SHA256).Hash.ToLower()
-          "$hash  ${{ matrix.output }}" | Out-File -FilePath "${{ matrix.output }}.sha256" -NoNewline
-          
-      - name: Generate checksum (macOS bundle)
-        if: matrix.is_app_bundle
-        run: |
-          cd build
-          sha256sum "${{ matrix.output }}.zip" > "${{ matrix.output }}.zip.sha256"
-
-      # Upload artefactos
-      - name: Upload artifact
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.name }}
-          path: |
-            build/bin/${{ matrix.output }}
-            build/bin/${{ matrix.output }}.sha256
-            build/bin/*.deb
-            build/bin/*.deb.sha256
-            build/bin/*.AppImage
-            build/bin/*.AppImage.sha256
-            build/${{ matrix.output }}.zip
-            build/${{ matrix.output }}.zip.sha256
-          retention-days: 5
-          if-no-files-found: warn
+          name: ${{ env.APP_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: bin/*
+          if-no-files-found: error
 
   # ===========================================================================
-  # Job: CLI (Linux)
+  # Job: Build Linux .deb with the GTK4 GUI
   # ===========================================================================
-  # The CLI has no Wails/webview or frontend dependency, so it builds in
-  # isolation with CGO disabled.
-  cli:
-    name: Build sendlog-cli (linux/amd64)
+  deb:
+    name: Build sendlog .deb
     runs-on: ubuntu-latest
     needs: prepare
 
@@ -361,250 +210,144 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup Go
+      - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: Build CLI
+      - name: Cache Go build
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/go-build
+          key: go-build-${{ runner.os }}-go${{ env.GO_VERSION }}-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-build-${{ runner.os }}-go${{ env.GO_VERSION }}-
+
+      - name: Install GTK4 and libadwaita
         run: |
-          mkdir -p build/bin
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-            -o build/bin/Sendlog-Syslog-cli-linux-amd64 \
-            -ldflags "-s -w -X main.version=${{ needs.prepare.outputs.version }}" \
-            ./cmd/sendlog-cli
-          ./build/bin/Sendlog-Syslog-cli-linux-amd64 version
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-4-dev libadwaita-1-dev libgirepository1.0-dev pkg-config dpkg-dev
 
-      - name: Generate checksum
-        run: sha256sum build/bin/Sendlog-Syslog-cli-linux-amd64 > build/bin/Sendlog-Syslog-cli-linux-amd64.sha256
+      - name: Build GUI binary
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build \
+            -ldflags "-s -w -X Sendlog-Syslog/internal/cli.Version=${VERSION}" \
+            -o sendlog \
+            ./cmd/sendlog
+          ./sendlog version
 
-      - name: Upload artifact
+      - name: Package .deb
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          VER_NUM="${VERSION#v}"
+          ARCH="amd64"
+          PKG="sendlog"
+          STAGE="deb-build/${PKG}_${VER_NUM}_${ARCH}"
+
+          # Derive the real GTK4 runtime packages from the binary's shared
+          # library dependencies so the control file always matches the build.
+          DEPS=$(objdump -p sendlog | awk '/NEEDED/{print $2}' \
+            | grep -E '^lib(gtk-4|adwaita-1|glib-2|gobject-2|gio-2|gdk_pixbuf|pango|cairo|gmodule)' \
+            | sort -u \
+            | while read -r lib; do
+                dpkg -S "/usr/lib/x86_64-linux-gnu/${lib}" 2>/dev/null \
+                  | head -1 | cut -d: -f1
+              done | grep -v -- '-dev$' | sort -u | paste -sd, - | sed 's/,/, /g')
+          echo "Depends: ${DEPS}"
+
+          mkdir -p \
+            "${STAGE}/DEBIAN" \
+            "${STAGE}/usr/bin" \
+            "${STAGE}/usr/share/applications"
+          cp sendlog "${STAGE}/usr/bin/sendlog"
+          cp assets/sendlog.desktop "${STAGE}/usr/share/applications/sendlog.desktop"
+          cp -r assets/icons "${STAGE}/usr/share/icons"
+
+          printf '%s\n' \
+            "Package: ${PKG}" \
+            "Version: ${VER_NUM}" \
+            "Section: utils" \
+            "Priority: optional" \
+            "Architecture: ${ARCH}" \
+            "Maintainer: SendLog <maintainers@sendlog.dev>" \
+            "Description: Send syslog messages to a remote server" \
+            " Send syslog messages (TCP/UDP, TLS, RFC 3164/5424, replay) with a" \
+            " GTK4 desktop application, a terminal UI, and a CLI for automation." \
+            "Homepage: https://github.com/${GITHUB_REPOSITORY#*/}" \
+            "Depends: ${DEPS}" \
+            > "${STAGE}/DEBIAN/control"
+          cat "${STAGE}/DEBIAN/control"
+
+          dpkg-deb --build --root-owner-group "${STAGE}"
+          mv "${STAGE}.deb" "${PKG}_${VER_NUM}_${ARCH}.deb"
+
+      - name: Upload .deb artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CLI
-          path: |
-            build/bin/Sendlog-Syslog-cli-linux-amd64
-            build/bin/Sendlog-Syslog-cli-linux-amd64.sha256
-          retention-days: 5
+          name: sendlog-linux-amd64-deb
+          path: sendlog_*.deb
           if-no-files-found: error
 
   # ===========================================================================
-  # Job: Crear Release de GitHub
+  # Job: Create GitHub Release with all binaries
   # ===========================================================================
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [prepare, build, cli]
-    
+    needs: [prepare, build, deb]
+    if: github.event_name == 'push'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v8
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
         with:
-          path: ./artifacts
+          path: artifacts
+          merge-multiple: true
 
-      - name: List artifacts
-        run: |
-          echo "📦 Downloaded artifacts:"
-          find ./artifacts -type f -ls
-
-      - name: Prepare release files
+      - name: Stage release assets
         run: |
           mkdir -p release
-          find ./artifacts -type f \( -name "*.exe" -o -name "Sendlog-Syslog-linux-*" -o -name "Sendlog-Syslog-cli-*" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.zip" -o -name "*.sha256" \) -exec cp {} release/ \;
-          echo "📦 Release files:"
+          for artifact in artifacts/*/; do
+            cp -r "${artifact}"* release/ 2>/dev/null || true
+          done
           ls -la release/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "SendLog Syslog ${{ needs.prepare.outputs.version }}"
-          tag_name: ${{ needs.prepare.outputs.version }}
+          files: release/*
+          draft: false
           prerelease: ${{ needs.prepare.outputs.is_prerelease }}
           generate_release_notes: false
           body: |
-            # 🚀 SendLog Syslog ${{ needs.prepare.outputs.version }}
-            
-            Professional syslog message sender for network testing and monitoring.
-            
-            ## 📥 Downloads
-            
-            ### 🪟 Windows
-            | File | Description |
-            |------|-------------|
-            | `Sendlog-Syslog-windows-amd64.exe` | Windows 64-bit executable |
-            
-            ### 🐧 Linux
-            | File | Description |
-            |------|-------------|
-            | `sendlog-syslog_*.deb` | **Recommended** - Debian/Ubuntu package (auto-installs dependencies) |
-            | `Sendlog-Syslog-*-x86_64.AppImage` | Portable AppImage (no installation needed) |
-            | `Sendlog-Syslog-linux-amd64` | Raw binary (requires manual dependency installation) |
-            
-            ### 🍎 macOS
-            | File | Description |
-            |------|-------------|
-            | `Sendlog-Syslog-macos-universal.app.zip` | macOS Universal (Intel + Apple Silicon) |
-            
-            ## 🔄 Changelog
-            
+            ## ${{ needs.prepare.outputs.version }}
+
             ${{ needs.prepare.outputs.changelog }}
-            
-            ## 📋 Installation
-            
-            <details>
-            <summary><b>🪟 Windows</b></summary>
-            
-            1. Download `Sendlog-Syslog-windows-amd64.exe`
-            2. Run the executable
-            </details>
-            
-            <details>
-            <summary><b>🐧 Linux - DEB Package (Recommended)</b></summary>
-            
-            ```bash
-            # Download the .deb file, then:
-            sudo apt install ./sendlog-syslog_*.deb
-            
-            # Dependencies are installed automatically!
-            # Run from applications menu or:
-            sendlog-syslog
-            ```
-            </details>
-            
-            <details>
-            <summary><b>🐧 Linux - AppImage (Portable)</b></summary>
-            
-            ```bash
-            # Download the AppImage, then:
-            chmod +x Sendlog-Syslog-*-x86_64.AppImage
-            ./Sendlog-Syslog-*-x86_64.AppImage
-            
-            # No installation or dependencies needed!
-            ```
-            </details>
-            
-            <details>
-            <summary><b>🐧 Linux - Raw Binary</b></summary>
-            
-            ```bash
-            # Install dependencies first:
-            # Ubuntu 24.04+
-            sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0
-            
-            # Ubuntu 22.04 and earlier
-            sudo apt install libgtk-3-0 libwebkit2gtk-4.0-37
-            
-            # Then run:
-            chmod +x Sendlog-Syslog-linux-amd64
-            ./Sendlog-Syslog-linux-amd64
-            ```
-            </details>
-            
-            <details>
-            <summary><b>🍎 macOS</b></summary>
-            
-            1. Download and unzip `Sendlog-Syslog-macos-universal.app.zip`
-            2. Move `Sendlog-Syslog.app` to Applications
-            3. Right-click → Open (first time only, to bypass Gatekeeper)
-            </details>
-            
-            ## 🔐 Verify Downloads
-            
-            ```bash
-            # Linux/macOS
-            sha256sum -c Sendlog-Syslog-*.sha256
-            
-            # Windows (PowerShell)
-            Get-Content *.sha256 | ForEach-Object {
-              $expected = ($_ -split '\s+')[0]
-              $file = ($_ -split '\s+')[1]
-              $actual = (Get-FileHash $file -Algorithm SHA256).Hash.ToLower()
-              if ($expected -eq $actual) { "✓ $file" } else { "✗ $file" }
-            }
-            ```
-            
-            ---
-            **Full Changelog**: ${{ needs.prepare.outputs.compare_url }}
-          files: |
-            release/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ===========================================================================
-  # Job: Actualizar CHANGELOG.md
-  # ===========================================================================
-  update-changelog:
-    name: Update CHANGELOG
-    runs-on: ubuntu-latest
-    needs: [prepare, release]
-    if: needs.prepare.outputs.is_prerelease == 'false'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          ref: main
-          token: ${{ secrets.GITHUB_TOKEN }}
+            ### 📦 Binaries
 
-      - name: Update CHANGELOG.md
-        run: |
-          VERSION="${{ needs.prepare.outputs.version }}"
-          DATE=$(date +%Y-%m-%d)
-          CHANGELOG_CONTENT="${{ needs.prepare.outputs.changelog }}"
-          
-          # Crear entrada del changelog en archivo temporal
-          cat > /tmp/new_entry.txt << 'ENTRY_EOF'
-          ## [${VERSION#v}] - ${DATE}
-          
-          ENTRY_EOF
-          
-          # Reemplazar variables en el archivo temporal
-          echo "## [${VERSION#v}] - ${DATE}" > /tmp/new_entry.txt
-          echo "" >> /tmp/new_entry.txt
-          echo "$CHANGELOG_CONTENT" >> /tmp/new_entry.txt
-          echo "" >> /tmp/new_entry.txt
-          
-          # Verificar si ya existe una sección de versiones
-          if grep -q "^## \[" CHANGELOG.md 2>/dev/null; then
-            # Crear nuevo archivo con la entrada insertada
-            {
-              # Leer hasta la primera línea ## [
-              while IFS= read -r line; do
-                if [[ "$line" =~ ^##\ \[ ]]; then
-                  # Insertar nueva entrada antes
-                  cat /tmp/new_entry.txt
-                  echo "$line"
-                  break
-                else
-                  echo "$line"
-                fi
-              done
-              # Continuar con el resto del archivo
-              cat
-            } < CHANGELOG.md > /tmp/changelog_new.md
-            mv /tmp/changelog_new.md CHANGELOG.md
-          else
-            # Si no existe CHANGELOG.md o no tiene versiones, crear/agregar
-            if [ ! -f CHANGELOG.md ]; then
-              echo "# Changelog" > CHANGELOG.md
-              echo "" >> CHANGELOG.md
-              echo "All notable changes to this project will be documented in this file." >> CHANGELOG.md
-              echo "" >> CHANGELOG.md
-            fi
-            cat /tmp/new_entry.txt >> CHANGELOG.md
-          fi
-          
-          # Limpiar
-          rm -f /tmp/new_entry.txt
-          
-      - name: Commit changelog
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git commit -m "docs: update CHANGELOG for ${{ needs.prepare.outputs.version }}" || exit 0
-          git push
+            | Platform | File |
+            |--------|------|
+            | Windows (64-bit) | sendlog-windows-amd64.exe (icon embedded) |
+            | Linux (64-bit, TUI/CLI) | sendlog-linux-amd64 |
+            | Linux (64-bit, GUI .deb) | sendlog-*_amd64.deb |
+            | macOS (Intel) | sendlog-darwin-amd64 |
+            | macOS (Apple Silicon) | sendlog-darwin-arm64 |
+
+            ### 🚀 Quick Start
+
+            ```bash
+            # Windows / Linux (static binary):
+            ./sendlog                  # GUI on Linux with a display, TUI elsewhere
+            ./sendlog send -a host -p 514 -m "hello"   # send a message
+            ./sendlog help             # full flag reference
+
+            # Linux (.deb installs the GUI app):
+            dpkg -i sendlog-<version>_amd64.deb
+            ```

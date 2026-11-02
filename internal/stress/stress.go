@@ -1,11 +1,10 @@
-// Package stress implements the continuous / stress-test syslog send engine.
-// It is independent of the Wails GUI; stats are exposed via callbacks so the
-// GUI can emit runtime events and the CLI can print to stderr.
+// Package stress implements the continuous send engine used for load testing the syslog connection.
 package stress
 
 import (
 	"context"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -13,34 +12,38 @@ import (
 	"Sendlog-Syslog/internal/syslog"
 )
 
-// ContinuousSendConfig configuration for continuous/stress test mode
+// ContinuousSendConfig configures continuous sending
 type ContinuousSendConfig struct {
-	// Connection settings
-	Address       string               `json:"Address"`
-	Port          string               `json:"Port"`
-	Protocol      string               `json:"Protocol"`
-	Message       string               `json:"Message"`
-	Method        framing.Method       `json:"FramingMethod"`
-	Facility      uint8                `json:"Facility"`
-	Severity      uint8                `json:"Severity"`
-	Hostname      string               `json:"Hostname"`
-	Appname       string               `json:"Appname"`
-	MessageFormat syslog.MessageFormat `json:"MessageFormat"`
-	// UseRFC5424 is the legacy format switch, kept for stored configs.
-	// MessageFormat takes precedence when set.
-	UseRFC5424     bool   `json:"UseRFC5424"`
-	UseTLS         bool   `json:"UseTLS"`
-	TLSVerify      bool   `json:"TLSVerify"`
-	CACertPath     string `json:"CACertPath"`
-	ClientCertPath string `json:"ClientCertPath"`
-	ClientKeyPath  string `json:"ClientKeyPath"`
-
-	// Continuous send settings
-	Duration       int  `json:"Duration"`
-	MessagesPerSec int  `json:"MessagesPerSec"`
-	MaxMessages    int  `json:"MaxMessages"`
-	RandomizeData  bool `json:"RandomizeData"`
+	Address        string               `json:"address"`
+	Port           string               `json:"port"`
+	Protocol       string               `json:"protocol"`
+	Method         framing.Method       `json:"method"`
+	Facility       uint8                `json:"facility"`
+	Severity       uint8                `json:"severity"`
+	Hostname       string               `json:"hostname"`
+	Appname        string               `json:"appname"`
+	MessageFormat  syslog.MessageFormat `json:"messageFormat"`
+	UseRFC5424     bool                 `json:"useRFC5424"`
+	Message        string               `json:"message"`
+	MessagesPerSec int                  `json:"messagesPerSec"`
+	Duration       int                  `json:"duration"`
+	MaxMessages    int                  `json:"maxMessages"`
+	RandomizeData  bool                 `json:"randomizeData"`
+	UseTLS         bool                 `json:"useTLS"`
+	TLSVerify      bool                 `json:"tlsVerify"`
+	CACertPath     string               `json:"caCertPath"`
+	ClientCertPath string               `json:"clientCertPath"`
+	ClientKeyPath  string               `json:"clientKeyPath"`
+	// Conn is an already-open transport the engine sends over without closing
+	// it, for reuse with the GUI's live connection.
+	Conn net.Conn `json:"-"`
+	// ownsConn is true when the engine opened Conn itself and must close it.
+	ownsConn bool
 }
+
+// OwnsConnection reports whether the engine opened Conn and must close it
+// when the run ends; a caller-supplied Conn stays open.
+func (c ContinuousSendConfig) OwnsConnection() bool { return c.ownsConn }
 
 // ContinuousStats real-time statistics for continuous send
 type ContinuousStats struct {
@@ -82,12 +85,46 @@ func (s *Engine) GetContinuousStats() ContinuousStats {
 }
 
 // Start begins sending messages continuously based on config.
+// It validates the configuration and (when config.Conn is nil) dials the
+// target before returning, so a bad setup never leaves the engine running.
 // onStats is called (may be nil) on the ~250ms stats tick and on stop.
 func (s *Engine) Start(config ContinuousSendConfig, onStats func(ContinuousStats)) error {
 	s.continuousMu.Lock()
 	if s.isRunning {
 		s.continuousMu.Unlock()
 		return fmt.Errorf("continuous send already running")
+	}
+
+	// Build syslog config for validation
+	syslogConfig := syslog.Config{
+		Address:        config.Address,
+		Port:           config.Port,
+		Protocol:       config.Protocol,
+		Method:         config.Method,
+		Facility:       config.Facility,
+		Severity:       config.Severity,
+		Hostname:       config.Hostname,
+		Appname:        config.Appname,
+		MessageFormat:  config.MessageFormat,
+		UseRFC5424:     config.UseRFC5424,
+		UseTLS:         config.UseTLS,
+		TLSVerify:      config.TLSVerify,
+		CACertPath:     config.CACertPath,
+		ClientCertPath: config.ClientCertPath,
+		ClientKeyPath:  config.ClientKeyPath,
+	}
+	if err := syslog.ValidateConfig(&syslogConfig); err != nil {
+		s.continuousMu.Unlock()
+		return err
+	}
+	if config.Conn == nil {
+		conn, err := syslog.Dial(syslogConfig)
+		if err != nil {
+			s.continuousMu.Unlock()
+			return err
+		}
+		config.Conn = conn
+		config.ownsConn = true
 	}
 
 	// Create cancellation context
@@ -111,32 +148,17 @@ func (s *Engine) Start(config ContinuousSendConfig, onStats func(ContinuousStats
 	return nil
 }
 
-// Stop stops the continuous send operation
+// Stop stops the continuous sending
 func (s *Engine) Stop() {
 	s.continuousMu.Lock()
-	defer s.continuousMu.Unlock()
-
 	if s.continuousCancel != nil {
 		s.continuousCancel()
-		s.continuousCancel = nil
 	}
-	s.isRunning = false
-	s.continuousStats.IsRunning = false
+	s.continuousMu.Unlock()
 }
 
 // runContinuousSend is the goroutine that handles continuous message sending
 func (s *Engine) runContinuousSend(ctx context.Context, config ContinuousSendConfig, onStats func(ContinuousStats)) {
-	defer func() {
-		s.continuousMu.Lock()
-		s.isRunning = false
-		s.continuousStats.IsRunning = false
-		stats := s.continuousStats
-		s.continuousMu.Unlock()
-		if onStats != nil {
-			onStats(stats)
-		}
-	}()
-
 	// Build syslog config
 	syslogConfig := syslog.Config{
 		Address:        config.Address,
@@ -156,17 +178,7 @@ func (s *Engine) runContinuousSend(ctx context.Context, config ContinuousSendCon
 		ClientKeyPath:  config.ClientKeyPath,
 	}
 
-	// Validate config
-	if err := syslog.ValidateConfig(&syslogConfig); err != nil {
-		return
-	}
-
-	// Establish connection
-	conn, err := syslog.Dial(syslogConfig)
-	if err != nil {
-		return
-	}
-	defer func() { _ = conn.Close() }()
+	conn := config.Conn
 
 	// Create framer for TCP
 	var framer *framing.Framer
@@ -195,22 +207,41 @@ func (s *Engine) runContinuousSend(ctx context.Context, config ContinuousSendCon
 	var sequenceNum int64
 	lastStatsUpdate := time.Now()
 
-	// Main loop
-	for {
+	publish := func(running bool) {
+		elapsed := time.Since(startTime).Seconds()
+		currentRate := 0.0
+		if elapsed > 0 {
+			currentRate = float64(sentCount) / elapsed
+		}
+
+		s.continuousMu.Lock()
+		s.isRunning = running
+		s.continuousStats.TotalSent = sentCount
+		s.continuousStats.TotalErrors = errorCount
+		s.continuousStats.ElapsedSeconds = elapsed
+		s.continuousStats.CurrentRate = currentRate
+		s.continuousStats.IsRunning = running
+		stats := s.continuousStats
+		s.continuousMu.Unlock()
+
+		if onStats != nil {
+			onStats(stats)
+		}
+	}
+
+	done := false
+	for !done {
 		select {
 		case <-ctx.Done():
-			return
-
+			done = true
 		case <-durationTimer:
-			return
-
+			done = true
 		case <-ticker.C:
-			// Check max messages limit
 			if config.MaxMessages > 0 && sentCount >= int64(config.MaxMessages) {
-				return
+				done = true
+				break
 			}
 
-			// Build message with optional randomization
 			message := config.Message
 			if config.RandomizeData {
 				sequenceNum++
@@ -221,20 +252,18 @@ func (s *Engine) runContinuousSend(ctx context.Context, config ContinuousSendCon
 				)
 			}
 
-			// Build syslog message
 			syslogMsg, err := syslog.BuildMessage(syslogConfig, message)
 			if err != nil {
 				errorCount++
-				continue
+				break
 			}
 
-			// Send message
 			var sendErr error
 			if config.Protocol == "tcp" && framer != nil {
 				framedMsg, err := framer.Frame(syslogMsg)
 				if err != nil {
 					errorCount++
-					continue
+					break
 				}
 				if err := conn.SetWriteDeadline(time.Now().Add(syslog.WriteTimeout)); err != nil {
 					_ = err
@@ -253,24 +282,17 @@ func (s *Engine) runContinuousSend(ctx context.Context, config ContinuousSendCon
 				sentCount++
 			}
 
-			// Update stats every 250ms
 			if time.Since(lastStatsUpdate) >= 250*time.Millisecond {
-				elapsed := time.Since(startTime).Seconds()
-				currentRate := float64(sentCount) / elapsed
-
-				s.continuousMu.Lock()
-				s.continuousStats.TotalSent = sentCount
-				s.continuousStats.TotalErrors = errorCount
-				s.continuousStats.ElapsedSeconds = elapsed
-				s.continuousStats.CurrentRate = currentRate
-				stats := s.continuousStats
-				s.continuousMu.Unlock()
-
-				if onStats != nil {
-					onStats(stats)
-				}
+				publish(true)
 				lastStatsUpdate = time.Now()
 			}
 		}
+	}
+
+	// Final stats flush so short runs report their true totals.
+	publish(false)
+
+	if config.OwnsConnection() {
+		_ = conn.Close()
 	}
 }

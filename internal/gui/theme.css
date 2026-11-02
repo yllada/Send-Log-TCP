@@ -1,0 +1,75 @@
+/*
+ * theme.css — SendLog GTK polish, layered over the active system theme.
+ * Selectors are classes applied via AddCSSClass in the Go code.
+ * GTK4 CSS has no !important; theme names (@window_bg_color, etc.) are
+ * resolved per theme, so these look right on any distribution.
+ */
+
+.sendlog-section {
+  background-color: alpha(@window_bg_color, 0.55);
+  border: 1px solid @borders;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.sendlog-section-sub {
+  color: @window_fg_color;
+  opacity: 0.6;
+  font-size: 0.9em;
+}
+
+.sendlog-field-label {
+  color: @window_fg_color;
+  opacity: 0.72;
+  font-size: 0.86em;
+}
+
+.sendlog-msg-view {
+  background-color: @view_bg_color;
+  border: 1px solid @borders;
+  border-radius: 10px;
+}
+
+.sendlog-msg-view text {
+  background-color: transparent;
+  color: @window_fg_color;
+}
+
+.sendlog-status {
+  background-color: alpha(@window_bg_color, 0.55);
+  border: 1px solid @borders;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.sendlog-status-icon {
+  font-weight: 700;
+}
+
+.sendlog-status-ok {
+  color: @success_color;
+}
+
+.sendlog-status-err {
+  color: @error_color;
+}
+
+.sendlog-status-warn {
+  color: @warning_color;
+}
+
+.sendlog-imported-badge {
+  color: @window_fg_color;
+  opacity: 0.75;
+}
+
+.sendlog-footer-note {
+  color: @window_fg_color;
+  opacity: 0.55;
+  font-size: 0.85em;
+}
+
+.sendlog-monospace {
+  font-family: monospace;
+  font-size: 0.9em;
+}

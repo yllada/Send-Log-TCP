@@ -1,421 +1,128 @@
-# SendLog Syslog
+# SendLog
 
-<div align="center">
+Send syslog messages to a remote server — manually or on a fixed interval — and verify they arrive in your SIEM.
 
-[![CI](https://github.com/Y3LCorp/Send-Log-TCP/actions/workflows/ci.yml/badge.svg)](https://github.com/Y3LCorp/Send-Log-TCP/actions/workflows/ci.yml)
-[![Release](https://github.com/Y3LCorp/Send-Log-TCP/actions/workflows/release.yml/badge.svg)](https://github.com/Y3LCorp/Send-Log-TCP/actions/workflows/release.yml)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![GitHub release](https://img.shields.io/github/v/release/Y3LCorp/Send-Log-TCP)](https://github.com/Y3LCorp/Send-Log-TCP/releases/latest)
-[![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/Y3LCorp/Send-Log-TCP/releases)
+- TCP or UDP, with optional TLS/mTLS (RFC 5425)
+- RFC 5424 and RFC 3164 message formats
+- TCP framing: octet-counting (RFC 6587) or non-transparent
+- Import messages from a file (`.json`, `.csv`, `.txt`)
+- Continuous sending at a fixed rate with live statistics
 
-**A modern, cross-platform desktop application for sending syslog messages to remote servers via TCP or UDP.**
+One binary, several ways to use it:
 
-Built with [Wails v2](https://wails.io/) (Go + Web Technologies) | RFC 5424 & RFC 3164 Compliant
+- **`sendlog`** (no arguments) opens the GTK4 desktop GUI on Linux; on other platforms (or without a display) it opens the terminal UI.
+- **`sendlog tui`** forces the terminal UI anywhere.
+- **`sendlog send|connect|stress [flags]`** runs in command-line mode for scripts and automation.
 
-[Download](#-download) • [Features](#-features) • [Documentation](#-documentation) • [Contributing](#-contributing)
-
-</div>
-
----
-
-## 📋 Table of Contents
-
-- [Features](#-features)
-- [Download](#-download)
-- [CLI (Linux)](#-cli-linux)
-- [Quick Start](#-quick-start)
-- [Usage](#-usage)
-- [Development](#-development)
-- [Documentation](#-documentation)
-- [Contributing](#-contributing)
-- [Security](#-security)
-- [License](#-license)
-
----
-
-## ✨ Features
-
-- **Multi-Protocol Support**: Send logs via TCP or UDP
-- **TLS/SSL Encryption**: Secure syslog transmission over TLS (RFC 5425)
-  - Support for self-signed certificates
-  - Configurable certificate verification
-  - TLS 1.2 and 1.3 support
-- **RFC Compliance**: Supports both RFC 5424 (modern) and RFC 3164 (legacy) formats
-- **TCP Framing** (RFC 6587): 
-  - ⭐ **Octet Counting** (recommended): Efficient length-prefixed framing
-  - **Non-Transparent Framing**: LF-delimited for legacy compatibility
-- **Professional Implementation**:
-  - Modular architecture with separated concerns
-  - Efficient memory usage with pre-calculated buffers
-  - Comprehensive validation (UTF-8, message length, framing rules)
-  - Robust error handling with detailed messages
-- **Modern UI**: Built with Next.js, React, and shadcn/ui components
-- **Dark/Light Theme**: System-aware theme switching
-- **Real-time Connection**: Test and maintain persistent connections
-- **Cross-Platform**: Windows, macOS (Intel & Apple Silicon), and Linux
-- **Fully Tested**: Comprehensive test suite with benchmarks
-
-### Tech Stack
-
-| Layer | Technologies |
-|-------|-------------|
-| **Backend** | Go 1.22+, Wails v2 |
-| **Frontend** | Next.js, React, TypeScript |
-| **UI** | shadcn/ui, Tailwind CSS |
-| **Forms** | React Hook Form, Zod |
-
----
-
-## 📥 Download
-
-Pre-built binaries are available in the [Releases](https://github.com/Y3LCorp/Send-Log-TCP/releases) page.
-
-### Windows
-Download `Sendlog-Syslog-windows-amd64.exe` and run it directly.
-
-### macOS
-Download the appropriate version:
-- **Apple Silicon (M1/M2/M3/M4):** `Sendlog-Syslog-darwin-arm64`
-- **Intel:** `Sendlog-Syslog-darwin-amd64`
-
-### Linux
-
-<details>
-<summary><b>DEB Package (Recommended for Debian/Ubuntu)</b></summary>
+## Build
 
 ```bash
-# Download and install - automatically handles dependencies
-sudo dpkg -i sendlog-syslog_*_amd64.deb
-sudo apt-get install -f  # Install missing dependencies if any
-```
-</details>
+# Terminal UI + CLI (static, no dependencies)
+go build -tags nocgo -o sendlog ./cmd/sendlog
 
-<details>
-<summary><b>AppImage (Portable)</b></summary>
-
-```bash
-chmod +x Sendlog-Syslog-*-x86_64.AppImage
-./Sendlog-Syslog-*-x86_64.AppImage
-```
-</details>
-
-<details>
-<summary><b>Raw Binary</b></summary>
-
-```bash
-# Install dependencies first
-sudo apt install -y libgtk-3-0 libwebkit2gtk-4.1-0  # Ubuntu 24.04+
-# or
-sudo apt install -y libgtk-3-0 libwebkit2gtk-4.0-37  # Ubuntu 22.04
-
-# Then run the binary
-chmod +x Sendlog-Syslog-linux-amd64
-./Sendlog-Syslog-linux-amd64
-```
-</details>
-
----
-
-## 💻 CLI (Linux)
-
-A command-line client for Linux shares the exact core of the desktop app (same
-message formats, RFC 6587 framing, TLS/mTLS, stress engine and the same
-`~/.config/SendLog-Syslog/sendlog-config.json` storage — profiles created in
-the GUI are available in the CLI and vice versa). It is a single static
-binary with no dependencies: download `Sendlog-Syslog-cli-linux-amd64` from
-[Releases](https://github.com/Y3LCorp/Send-Log-TCP/releases/latest) and run it.
-
-Build from source:
-
-```bash
-go build -ldflags "-s -w -X main.version=$(git describe --tags)" -o sendlog-cli ./cmd/sendlog-cli
+# Full binary with the GTK4 GUI (linux; needs CGO + GTK4/libadwaita headers)
+go build -o sendlog ./cmd/sendlog
 ```
 
-### Examples
+The GUI is linux-only and is compiled in when CGO is available. On any other platform, or with `CGO_ENABLED=0`, `sendlog` simply starts the terminal UI instead.
+
+## Terminal UI
+
+Run `./sendlog tui` (or `./sendlog` on a system without the GTK4 GUI) and navigate the screens with `↑/↓` and `enter`; go back with `esc`; quit with `ctrl+c`. Move between fields with `tab`.
+
+## Desktop GUI (GTK4, Linux)
+
+Run `./sendlog` with a display. It opens a single screen with three framed sections — **Connection**, **Message**, **Stress** — plus a live status area. The **Connect** button keeps a TCP/TLS socket open; **Send messages** and **Start stress** then reuse that connection until you disconnect. Importing a file fills the message editor, and stress runs show live counters and a progress bar.
+
+### 1. Connection
+
+Set the server host, port, and protocol:
+
+| Field | Notes |
+|---|---|
+| Host / Port | Server address. `514` is the usual plain port, `6514` for TLS. |
+| Protocol | `TCP` or `UDP`. |
+| Framing | TCP only. `octet-counting` is the recommended default. |
+| TLS | `off` or `on` (TCP only). |
+| Verify | Whether to validate the server certificate. Disable only for self-signed/test setups. |
+| CA cert / Cert / Key | Paths for the CA bundle and, for mTLS, the client certificate and key. |
+
+Select the **Test** action and press `t` to check the connection before sending. The screen shows a clear connected / failed result with the reason.
+
+### 2. Messages
+
+Choose the message settings and the messages to send:
+
+| Field | Notes |
+|---|---|
+| Format | `rfc5424` (modern) or `rfc3164` (legacy). |
+| Facility | 0–23 (e.g. `local0` = 16). |
+| Severity | 0–7 (e.g. `info` = 6, `err` = 3). |
+| Hostname / Appname | Source name and application tag. Leave hostname empty to use the local one. |
+| Raw PRI | Prepend `<PRI>` to the message verbatim, with no header. For replaying captured vendor lines. |
+
+Add several messages with `a`, edit the selected one, remove it with `x`.
+
+### 3. Import File
+
+Type a file path and press `enter`. The file is parsed (`.json` arrays or NDJSON, `.csv` with a `message`/`msg`/`log` column, `.txt` one message per line) and a preview is shown: total lines, valid messages, and any errors. Choose **Append** to add to the current list or **Replace** to swap it in.
+
+### 4. Send
+
+Review the message count and the target, then start the send. You get live progress and, when done, the list of sent messages and any errors with their reasons, plus a final `sent / failed` summary. This is where you confirm each message reached the server — check your SIEM for them.
+
+### 5. Stress
+
+Send the same message automatically at a fixed rate — for example one log per second:
+
+| Field | Notes |
+|---|---|
+| Message | What to send each tick. Defaults to your first composed message. |
+| Rate | Messages per second. |
+| Duration | Seconds to keep sending. Empty runs until you stop it. |
+
+Press start, watch the live counters (sent, errors, rate, elapsed), and press stop when you are done. A final summary is shown.
+
+## CLI (automation)
+
+The same binary also runs as a plain command-line client for scripts and CI. Progress and stats go to stderr; add `--json` for a single machine-readable line on stdout. Exit code is `0` on success, `1` on error.
 
 ```bash
 # Send one message over TCP (octet-counting framing, RFC 5424)
-./sendlog-cli send -a 10.0.0.5 -p 514 -t tcp -m "deploy finished"
+./sendlog send -a 10.0.0.5 -p 514 -t tcp -m "deploy finished"
 
 # Send messages from a log file (.json / .csv / .txt)
-./sendlog-cli send -a 10.0.0.5 -p 514 -t udp -f events.txt
+./sendlog send -a 10.0.0.5 -p 514 -t udp -f events.txt
 
-# Replay raw vendor lines (only <PRI> is prepended)
-./sendlog-cli send -a 10.0.0.5 -p 6514 -t tcp --tls --verify \
-  --ca /etc/ssl/certs/ca.pem --format raw-pri -f capture.txt
-
-# mTLS (RFC 5425) with client certificate
-./sendlog-cli send -a 10.0.0.5 -p 6514 -t tcp --tls \
+# mTLS (RFC 5425) with a client certificate
+./sendlog send -a 10.0.0.5 -p 6514 -t tcp --tls \
   --cert client.pem --key client.key -m "secret log"
 
 # Test that a connection works
-./sendlog-cli connect -a 10.0.0.5 -p 514 -t tcp --json
+./sendlog connect -a 10.0.0.5 -p 514 -t tcp --json
 
-# Stress test: 50 msg/s for 60 seconds (Ctrl+C stops early)
-./sendlog-cli stress -a 10.0.0.5 -p 514 -t tcp -m "load test" --rate 50 --duration 60
-
-# Manage saved profiles / templates (shared with the GUI)
-./sendlog-cli profile add --name prod -a 10.0.0.5 -p 6514 -t tcp --tls
-./sendlog-cli profile list
-./sendlog-cli template list
-./sendlog-cli export
-./sendlog-cli import -f backup.json --merge
+# Continuous send: 50 msg/s for 60 seconds (Ctrl+C stops early)
+./sendlog stress -a 10.0.0.5 -p 514 -t tcp -m "load test" --rate 50 --duration 60
 ```
 
-Progress and stats go to stderr; with `--json`, a single machine-readable
-line goes to stdout. Exit code is `0` on success, `1` on errors.
+Run `./sendlog help` for the full flag reference.
 
----
+## Verify in your SIEM
 
-## 🚀 Quick Start
+1. Point Connection at your syslog server and test it.
+2. Compose one easy-to-recognize message, e.g. `sendlog smoke test <timestamp>`.
+3. Send it and confirm it appears in the SIEM with the expected facility, severity, hostname, and app name.
+4. Optionally run Stress at 1 message/s and watch the events stream in.
 
-1. **Download** the appropriate binary for your platform from [Releases](https://github.com/Y3LCorp/Send-Log-TCP/releases/latest)
-2. **Run** the application
-3. **Configure** your syslog server connection:
-   - Enter the server IP address
-   - Set the port (default: `514` for plain, `6514` for TLS)
-   - Select protocol (TCP or UDP)
-4. **Send** your log messages!
-
----
-
-## 📖 Usage
-
-### Connection Configuration
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| **IP Address** | Syslog server address (IPv4 or IPv6) | - |
-| **Port** | Server port | 514 (plain) / 6514 (TLS) |
-| **Protocol** | TCP or UDP | TCP |
-| **TLS/SSL** | Enable encrypted connection (TCP only) | Off |
-| **Verify Certificate** | Validate server certificate | On |
-
-### Message Configuration
-
-| Setting | Description | Options |
-|---------|-------------|---------|
-| **RFC Format** | Syslog message format | RFC 5424 (modern) / RFC 3164 (legacy) |
-| **Facility** | Message category | 0-23 (e.g., 16 = local0) |
-| **Severity** | Message priority | 0-7 (e.g., 6 = informational) |
-| **Hostname** | Source hostname | Auto-detected or custom |
-| **App Name** | Application identifier | Custom |
-
-### 🔒 TLS/SSL Security
-
-| Feature | Description |
-|---------|-------------|
-| **Port 6514** | Standard port for syslog over TLS (RFC 5425) |
-| **Certificate Verification** | ✅ Enabled: Validates using system CA (production) |
-| | ⚠️ Disabled: Accepts self-signed certs (testing) |
-| **TLS Versions** | TLS 1.2 and TLS 1.3 supported |
-
-> **Note:** TLS is only available for TCP connections. UDP does not support encryption.
-
----
-
-## 🛠️ Development
-```
-
-3. Install frontend dependencies:
-```bash
-cd frontend
-pnpm install
-```
-
-## 🚀 Development
-
-Run in development mode:
-```bash
-wails dev
-```
-
-## 🏗️ Building
-
-### Linux (Ubuntu/Debian)
-```bash
-# First time: Install dependencies
-./scripts/install-linux-deps.sh
-
-# Build
-./scripts/build-linux.sh
-```
-
-### Windows
-```bash
-./scripts/build-windows.sh
-```
-
-### macOS (ARM)
-```bash
-./scripts/build-macos-arm.sh
-```
-
-### macOS (Intel)
-```bash
-./scripts/build-macos-intel.sh
-```
-
-## 📝 Usage
-
-1. **Configure Connection**:
-   - Enter server IP address
-   - Set port (default: 514 for plain, 6514 for TLS)
-   - Select protocol (TCP/UDP)
-   - **TLS Options** (TCP only):
-     - Enable "Use TLS/SSL" for encrypted connections
-     - Disable "Verify Certificate" to accept self-signed certificates
-   - Connect to server
-
-2. **Configure Message Format**:
-   - Choose RFC format (5424 or 3164)
-   - Set facility (0-23)
-   - Set severity (0-7)
-   - Optional: custom hostname and app name
-
-3. **Send Messages**:
-   - Enter log messages (one per line)
-   - Click "Send Syslog Messages"
-
-### 🔒 TLS/SSL Security Notes
-
-- **Port 6514**: Standard port for syslog over TLS (RFC 5425)
-- **Certificate Verification**: 
-  - ✅ **Enabled**: Verifies server certificate using system CA (recommended for production)
-  - ⚠️ **Disabled**: Accepts self-signed certificates (useful for testing/development)
-- **TLS Versions**: Supports TLS 1.2 and TLS 1.3
-- **UDP**: TLS is only available for TCP connections
-
-## 🔧 Configuration
-
-### Window Settings (main.go)
-```go
-Width:     900  // Fixed width
-Height:    780  // Fixed height
-MinWidth:  900
-MinHeight: 780
-MaxWidth:  1100
-MaxHeight: 900
-```
-
-### Syslog Facilities
-- 0-15: System facilities
-- 16-23: Local use (local0-local7)
-
-### Severity Levels
-- 0: Emergency
-- 1: Alert
-- 2: Critical
-- 3: Error
-- 4: Warning
-- 5: Notice
-- 6: Informational
-- 7: Debug
-
-## � Technical Documentation
-
-For detailed technical documentation about the RFC 6587 implementation, see [TECHNICAL_DOCUMENTATION.md](TECHNICAL_DOCUMENTATION.md).
-
-## 🧪 Testing
-
-Run the test suite:
-```bash
-go test -v
-```
-
-Run benchmarks:
-```bash
-go test -bench=. -benchmem
-```
-
----
-
-## 📚 Documentation
-
-- **[Technical Documentation](TECHNICAL_DOCUMENTATION.md)** - RFC 6587 implementation details
-- **[Changelog](CHANGELOG.md)** - Version history and release notes
-- **[License](LICENSE)** - Apache 2.0 License
-
-### Reference Standards
+## Reference
 
 | RFC | Description |
-|-----|-------------|
-| [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424) | The Syslog Protocol |
-| [RFC 3164](https://datatracker.ietf.org/doc/html/rfc3164) | BSD Syslog Protocol (legacy) |
-| [RFC 5425](https://datatracker.ietf.org/doc/html/rfc5425) | TLS Transport Mapping for Syslog |
-| [RFC 6587](https://datatracker.ietf.org/doc/html/rfc6587) | Transmission of Syslog Messages over TCP |
+|---|---|
+| [5424](https://datatracker.ietf.org/doc/html/rfc5424) | The Syslog Protocol (modern) |
+| [3164](https://datatracker.ietf.org/doc/html/rfc3164) | BSD Syslog Protocol (legacy) |
+| [5425](https://datatracker.ietf.org/doc/html/rfc5425) | TLS Transport Mapping for Syslog |
+| [6587](https://datatracker.ietf.org/doc/html/rfc6587) | Transmission of Syslog over TCP (octet-counting) |
 
----
+## License
 
-## 🤝 Contributing
-
-Contributions are welcome! Here's how you can help:
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes using [Conventional Commits](https://www.conventionalcommits.org/):
-   - `feat:` new feature
-   - `fix:` bug fix
-   - `docs:` documentation
-   - `refactor:` code refactoring
-4. **Push** to your branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
-
-### Reporting Issues
-
-Found a bug or have a feature request? [Open an issue](https://github.com/Y3LCorp/Send-Log-TCP/issues/new/choose)!
-
----
-
-## � Security
-
-Security is a top priority for SendLog Syslog. Key security features:
-
-- **TLS 1.2/1.3** encryption support
-- **mTLS** (Mutual TLS) for client authentication
-- **Certificate verification** enabled by default
-- **No telemetry** or data collection
-
-For reporting security vulnerabilities, please see our [Security Policy](SECURITY.md).
-
----
-
-## �📄 License
-
-This project is licensed under the **Apache License 2.0** - see the [LICENSE](LICENSE) file for details.
-
----
-
-## � Authors
-
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/yllada">
-        <img src="https://github.com/yllada.png" width="100px;" alt="Yadian Llada Lopez"/>
-        <br />
-        <sub><b>Yadian Llada Lopez</b></sub>
-      </a>
-      <br />
-      <a href="mailto:yadian.llada@gmail.com">📧 Email</a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/JocLRojas">
-        <img src="https://github.com/JocLRojas.png" width="100px;" alt="JocLRojas"/>
-        <br />
-        <sub><b>JocLRojas</b></sub>
-      </a>
-    </td>
-  </tr>
-</table>
-
----
-
-<div align="center">
-
-**⭐ If you find this project useful, please consider giving it a star!**
-
-Made with ❤️ using [Wails](https://wails.io/) and [Go](https://go.dev/)
-
-</div>
+[Apache 2.0](LICENSE)

@@ -1,2 +1,4 @@
 /build/bin
 /docs
+# local ODD working docs (not shared)
+odd/
