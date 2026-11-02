@@ -165,12 +165,6 @@ jobs:
           - goos: linux
             goarch: amd64
             bin_suffix: ""
-          - goos: darwin
-            goarch: amd64
-            bin_suffix: ""
-          - goos: darwin
-            goarch: arm64
-            bin_suffix: ""
 
     steps:
       - name: Checkout code
@@ -337,8 +331,6 @@ jobs:
             | Windows (64-bit) | sendlog-windows-amd64.exe (icon embedded) |
             | Linux (64-bit, TUI/CLI) | sendlog-linux-amd64 |
             | Linux (64-bit, GUI .deb) | sendlog-*_amd64.deb |
-            | macOS (Intel) | sendlog-darwin-amd64 |
-            | macOS (Apple Silicon) | sendlog-darwin-arm64 |
 
             ### 🚀 Quick Start
 
