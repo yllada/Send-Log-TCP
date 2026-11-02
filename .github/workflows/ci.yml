@@ -43,8 +43,14 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      - name: Install GTK4 and libadwaita
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-4-dev libadwaita-1-dev pkg-config
+
       - name: Run tests
-        run: go test -v -race -coverprofile=coverage.out ./...
+        run: CGO_ENABLED=1 go test -v -race -coverprofile=coverage.out ./...
 
       - name: Check coverage
         run: |
@@ -82,6 +88,15 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
+
+      - name: Install GTK4 and libadwaita
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-4-dev libadwaita-1-dev pkg-config
+
+      - name: Build GTK4 GUI
+        run: CGO_ENABLED=1 go build ./internal/gui/
 
       # Pinned to an explicit golangci-lint v2 release. "latest" resolves to
       # the newest v1 release, which is built with Go 1.24 and refuses to run
