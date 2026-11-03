@@ -307,9 +307,7 @@ jobs:
       - name: Stage release assets
         run: |
           mkdir -p release
-          for artifact in artifacts/*/; do
-            cp -r "${artifact}"* release/ 2>/dev/null || true
-          done
+          cp -r artifacts/* release/ 2>/dev/null || true
           ls -la release/
 
       - name: Create GitHub Release
