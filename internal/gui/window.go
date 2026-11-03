@@ -3,11 +3,13 @@
 package gui
 
 import (
+	"context"
 	"Sendlog-Syslog/internal/stress"
 	"Sendlog-Syslog/internal/syslog"
 
 	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
+	"github.com/diamondburned/gotk4/pkg/gdkpixbuf/v2"
 	"github.com/diamondburned/gotk4/pkg/gio/v2"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
@@ -88,8 +90,7 @@ func (a *App) buildWindow() {
 	a.win.SetDefaultSize(940, 720)
 
 	hb := adw.NewHeaderBar()
-	logo := gtk.NewImageFromIconName(appIconName)
-	logo.SetPixelSize(32)
+	logo := appLogo()
 	hb.PackStart(logo)
 	hb.SetTitleWidget(adw.NewWindowTitle("SendLog", "syslog sender"))
 	a.win.SetTitlebar(hb)
@@ -100,6 +101,15 @@ func (a *App) buildWindow() {
 
 	overlay.SetChild(a.buildContent())
 	a.win.Present()
+}
+
+func appLogo() *gtk.Image {
+	stream := gio.NewMemoryInputStreamFromBytes(glib.NewBytes(iconPNG))
+	pb, err := gdkpixbuf.NewPixbufFromStreamAtScale(context.Background(), stream, 32, 32, true)
+	if err != nil || pb == nil {
+		return gtk.NewImageFromIconName(appIconName)
+	}
+	return gtk.NewImageFromPixbuf(pb)
 }
 
 func (a *App) loadTheme() {
