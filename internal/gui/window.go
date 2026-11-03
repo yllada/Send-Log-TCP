@@ -88,6 +88,9 @@ func (a *App) buildWindow() {
 	a.win.SetDefaultSize(940, 720)
 
 	hb := adw.NewHeaderBar()
+	logo := gtk.NewImageFromIconName(appIconName)
+	logo.SetPixelSize(32)
+	hb.PackStart(logo)
 	hb.SetTitleWidget(adw.NewWindowTitle("SendLog", "syslog sender"))
 	a.win.SetTitlebar(hb)
 	a.win.SetIconName(appIconName)
