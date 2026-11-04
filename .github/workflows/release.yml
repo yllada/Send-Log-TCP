@@ -257,7 +257,7 @@ jobs:
             "${STAGE}/usr/bin" \
             "${STAGE}/usr/share/applications"
           cp sendlog "${STAGE}/usr/bin/sendlog"
-          cp assets/sendlog.desktop "${STAGE}/usr/share/applications/sendlog.desktop"
+          cp assets/com.sendlog.gui.desktop "${STAGE}/usr/share/applications/com.sendlog.gui.desktop"
           cp -r assets/icons/. "${STAGE}/usr/share/icons"
 
           printf '%s\n' \

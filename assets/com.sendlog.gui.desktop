@@ -9,3 +9,4 @@ Terminal=false
 Categories=Network;System;
 Keywords=syslog;network;testing;
 StartupNotify=true
+StartupWMClass=com.sendlog.gui
