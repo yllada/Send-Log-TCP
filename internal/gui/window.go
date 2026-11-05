@@ -3,9 +3,9 @@
 package gui
 
 import (
-	"context"
 	"Sendlog-Syslog/internal/stress"
 	"Sendlog-Syslog/internal/syslog"
+	"context"
 
 	"github.com/diamondburned/gotk4-adwaita/pkg/adw"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"

@@ -43,12 +43,12 @@ func TestClientSend_OctetCountingTCP(t *testing.T) {
 			if err != nil {
 				return
 			}
-			n, err := strconv.Atoi(prefix)
+			n, err := strconv.Atoi(strings.TrimSpace(prefix))
 			if err != nil {
 				return
 			}
 			buf := make([]byte, n)
-			if _, err := io.ReadFull(conn, buf); err != nil {
+			if _, err := io.ReadFull(reader, buf); err != nil {
 				return
 			}
 			if !strings.HasPrefix(string(buf), "<14>") {
